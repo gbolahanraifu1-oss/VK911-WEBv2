@@ -4,18 +4,10 @@
   "installCommand": "npm install",
   "outputDirectory": "build/client",
   "framework": null,
-  "routes": [
+  "rewrites": [
     {
-      "src": "/assets/(.*)",
-      "dest": "/build/client/assets/$1"
-    },
-    {
-      "src": "/(.*\\.(js|css|png|jpg|svg|ico|woff2|webmanifest))",
-      "dest": "/build/client/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/build/server/index.js"
+      "source": "/(.*)",
+      "destination": "/api/index.js"
     }
   ]
 }
