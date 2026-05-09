@@ -1,7 +1,6 @@
-import pkg from "@react-router/node";
-const { createRequestHandler } = pkg;
+import * as ReactRouterNode from "@react-router/node";
 
-const handler = createRequestHandler(
+const handler = ReactRouterNode.createRequestHandler(
   () => import("../build/server/index.js"),
   process.env.NODE_ENV || "production"
 );
