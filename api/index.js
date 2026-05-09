@@ -1,8 +1,34 @@
 import { createRequestListener } from "@react-router/node";
-import * as buildModule from "../build/server/index.js";
+import {
+  allowedActionOrigins,
+  assets,
+  assetsBuildDirectory,
+  basename,
+  entry,
+  future,
+  isSpaMode,
+  prerender,
+  publicPath,
+  routeDiscovery,
+  routes,
+  ssr,
+} from "../build/server/index.js";
 
-// Spread module namespace into a plain object so React Router can read routes
-const build = { ...buildModule };
+// Explicitly construct plain object — avoids ESM namespace exotic object issues
+const build = {
+  allowedActionOrigins,
+  assets,
+  assetsBuildDirectory,
+  basename,
+  entry,
+  future,
+  isSpaMode,
+  prerender,
+  publicPath,
+  routeDiscovery,
+  routes,
+  ssr,
+};
 
 const handler = createRequestListener(build, {
   mode: "production",
