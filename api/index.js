@@ -1,28 +1,8 @@
-export default async function handler(req, res) {
-  try {
-    const nodeModule = await import("@react-router/node");
-    console.log("@react-router/node exports:", Object.keys(nodeModule));
+import { createRequestListener } from "@react-router/node";
 
-    const createRequestHandler = nodeModule.createRequestHandler;
+const handler = createRequestListener(
+  () => import("../build/server/index.js"),
+  { mode: process.env.NODE_ENV || "production" }
+);
 
-    if (!createRequestHandler) {
-      res.statusCode = 500;
-      res.end(
-        "createRequestHandler not found. Available exports: " +
-          Object.keys(nodeModule).join(", ")
-      );
-      return;
-    }
-
-    const handle = createRequestHandler(
-      () => import("../build/server/index.js"),
-      process.env.NODE_ENV || "production"
-    );
-
-    return handle(req, res);
-  } catch (err) {
-    console.error("Handler error:", err);
-    res.statusCode = 500;
-    res.end(err.message);
-  }
-}
+export default handler;
