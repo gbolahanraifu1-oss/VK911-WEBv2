@@ -1,12 +1,23 @@
-import { createRequestListener } from "@react-router/node";
-
-const handler = createRequestListener(
-  async () => {
+export default async function handler(req, res) {
+  try {
     const mod = await import("../build/server/index.js");
-    // React Router v7 SSR build exports ServerBuild as default
-    return mod.default ?? mod;
-  },
-  { mode: process.env.NODE_ENV || "production" }
-);
 
-export default handler;
+    const info = {
+      moduleKeys: Object.keys(mod),
+      hasDefault: !!mod.default,
+      defaultType: typeof mod.default,
+      defaultKeys: mod.default ? Object.keys(mod.default) : [],
+      hasRoutes: !!mod.routes,
+      routesType: typeof mod.routes,
+      defaultHasRoutes: !!(mod.default?.routes),
+    };
+
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "application/json");
+    res.end(JSON.stringify(info, null, 2));
+  } catch (err) {
+    res.statusCode = 500;
+    res.setHeader("Content-Type", "text/plain");
+    res.end("Error: " + err.message + "\n" + err.stack);
+  }
+}
