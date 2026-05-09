@@ -1,37 +1,24 @@
 import { createRequestListener } from "@react-router/node";
-import {
-  allowedActionOrigins,
-  assets,
-  assetsBuildDirectory,
-  basename,
-  entry,
-  future,
-  isSpaMode,
-  prerender,
-  publicPath,
-  routeDiscovery,
-  routes,
-  ssr,
-} from "../build/server/index.js";
+import * as buildModule from "../build/server/index.js";
 
-// Explicitly construct plain object — avoids ESM namespace exotic object issues
-const build = {
-  allowedActionOrigins,
-  assets,
-  assetsBuildDirectory,
-  basename,
-  entry,
-  future,
-  isSpaMode,
-  prerender,
-  publicPath,
-  routeDiscovery,
-  routes,
-  ssr,
-};
+// Must be a function — createRequestListener calls it lazily per request
+function getBuild() {
+  return {
+    allowedActionOrigins: buildModule.allowedActionOrigins,
+    assets: buildModule.assets,
+    assetsBuildDirectory: buildModule.assetsBuildDirectory,
+    basename: buildModule.basename,
+    entry: buildModule.entry,
+    future: buildModule.future,
+    isSpaMode: buildModule.isSpaMode,
+    prerender: buildModule.prerender,
+    publicPath: buildModule.publicPath,
+    routeDiscovery: buildModule.routeDiscovery,
+    routes: buildModule.routes,
+    ssr: buildModule.ssr,
+  };
+}
 
-const handler = createRequestListener(build, {
-  mode: "production",
-});
+const handler = createRequestListener(getBuild, { mode: "production" });
 
 export default handler;
