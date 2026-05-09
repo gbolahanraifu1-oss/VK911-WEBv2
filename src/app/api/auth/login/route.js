@@ -1,5 +1,5 @@
 import sql from "@/app/api/utils/sql";
-import import bcrypt from "bcryptjs"";
+import bcrypt from "bcryptjs";
 
 export async function action({ request }) {
   if (request.method !== "POST") {
@@ -26,7 +26,7 @@ export async function action({ request }) {
 
     const existing = await sql`SELECT COUNT(*) as count FROM users`;
     if (parseInt(existing[0].count) === 0) {
-      const hash = await argon2.hash("admin123");
+      const hash = await bcrypt.hash("admin123", 10);
       await sql`INSERT INTO users (username, password_hash, role) VALUES ('admin', ${hash}, 'admin') ON CONFLICT DO NOTHING`;
     }
 
@@ -36,7 +36,7 @@ export async function action({ request }) {
     }
 
     const user = users[0];
-    const valid = await argon2.verify(user.password_hash, password);
+    const valid = await bcrypt.compare(password, user.password_hash);
     if (!valid) {
       return Response.json({ error: "Invalid credentials" }, { status: 401 });
     }
