@@ -1,5 +1,5 @@
 import sql from "@/app/api/utils/sql";
-import argon2 from "argon2";
+import import bcrypt from "bcryptjs"";
 
 export async function action({ request }) {
   if (request.method !== "POST") {
