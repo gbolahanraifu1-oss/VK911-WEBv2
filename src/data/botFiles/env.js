@@ -1,0 +1,32 @@
+// VK911 XMD — Bot File Content: .env.example
+export const ENV_EXAMPLE = `# VK911 XMD — Environment Config
+# Copy this file to .env and fill in your values
+BOT_NAME=VK911 XMD
+BOT_VERSION=v2.0.3
+BOT_PREFIX=.
+SESSION_NAME=VK911-Session
+OWNER_NUMBER=2347001234567
+CO_OWNER=
+BOT_MODE=public
+SELF_BOT=false
+OPENAI_API_KEY=sk-proj-your_openai_key
+GEMINI_API_KEY=AIzaSy_your_gemini_key
+ELEVENLABS_API_KEY=your_elevenlabs_key
+REMOVEBG_API_KEY=your_removebg_key
+YTDL_QUALITY=highest
+MAX_FILE_SIZE_MB=100
+MEDIA_API_URL=https://api.vreden.my.id
+DATABASE_URL=postgresql://user:password@localhost:5432/vk911xmd
+BOT_API_PORT=3001
+CHANNEL_NAME=VK911 XMD Official
+CHANNEL_LINK=https://whatsapp.com/channel/0029VaYpQHFHXotnpcTf3C3T
+ENABLE_NSFW=false
+ENABLE_WELCOME=true
+ENABLE_GOODBYE=true
+ENABLE_ANTILINK=false
+ENABLE_ANTISPAM=true
+ENABLE_AUTO_REACT=true
+ENABLE_READ_MESSAGES=true
+ENABLE_NEWSLETTER=true
+TIMEZONE=Africa/Lagos
+FOOTER_TEXT=© powered by VK911 TECH`;

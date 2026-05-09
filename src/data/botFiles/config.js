@@ -1,0 +1,36 @@
+// VK911 XMD — Bot File Content: config.js
+export const CONFIG_JS = `// VK911 XMD — Configuration
+import 'dotenv/config';
+const config = {
+  botName:       process.env.BOT_NAME      || 'VK911 XMD',
+  version:       'v2.0.3',
+  prefix:        process.env.BOT_PREFIX    || '.',
+  sessionName:   process.env.SESSION_NAME  || 'VK911-Session',
+  footer:        process.env.FOOTER_TEXT   || '\\u00a9 powered by VK911 TECH',
+  ownerNumber:   process.env.OWNER_NUMBER  || '2347001234567',
+  coOwner:       (process.env.CO_OWNER     || '').split(',').filter(Boolean),
+  botMode:       process.env.BOT_MODE      || 'public',
+  selfBot:       process.env.SELF_BOT      === 'true',
+  openaiKey:     process.env.OPENAI_API_KEY      || '',
+  geminiKey:     process.env.GEMINI_API_KEY       || '',
+  elevenlabsKey: process.env.ELEVENLABS_API_KEY   || '',
+  removebgKey:   process.env.REMOVEBG_API_KEY     || '',
+  ytdlQuality:   process.env.YTDL_QUALITY   || 'highest',
+  maxFileSizeMB: parseInt(process.env.MAX_FILE_SIZE_MB || '100'),
+  mediaApiUrl:   process.env.MEDIA_API_URL  || 'https://api.vreden.my.id',
+  databaseUrl:   process.env.DATABASE_URL   || '',
+  botApiPort:    parseInt(process.env.BOT_API_PORT || '3001'),
+  channelName:   process.env.CHANNEL_NAME   || 'VK911 XMD Official',
+  channelLink:   process.env.CHANNEL_LINK   || 'https://whatsapp.com/channel/0029VaYpQHFHXotnpcTf3C3T',
+  channelId:     '0029VaYpQHFHXotnpcTf3C3T',
+  enableNsfw:    false,
+  enableWelcome: process.env.ENABLE_WELCOME !== 'false',
+  enableGoodbye: process.env.ENABLE_GOODBYE !== 'false',
+  enableAntilink: process.env.ENABLE_ANTILINK === 'true',
+  enableAntispam: process.env.ENABLE_ANTISPAM !== 'false',
+  enableAutoReact: process.env.ENABLE_AUTO_REACT !== 'false',
+  enableReadMsg:  process.env.ENABLE_READ_MESSAGES !== 'false',
+  enableNewsletter: process.env.ENABLE_NEWSLETTER !== 'false',
+  timezone:      process.env.TIMEZONE       || 'Africa/Lagos',
+};
+export default config;`;
