@@ -2,13 +2,8 @@
   "version": 2,
   "buildCommand": "npm run build",
   "installCommand": "npm install",
-  "framework": null,
   "outputDirectory": "build/client",
-  "functions": {
-    "build/server/index.js": {
-      "runtime": "@vercel/node@5.x"
-    }
-  },
+  "framework": null,
   "routes": [
     {
       "src": "/assets/(.*)",
@@ -22,8 +17,5 @@
       "src": "/(.*)",
       "dest": "/build/server/index.js"
     }
-  ],
-  "env": {
-    "NODE_ENV": "production"
-  }
+  ]
 }
