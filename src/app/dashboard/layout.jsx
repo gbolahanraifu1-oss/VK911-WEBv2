@@ -1,8 +1,8 @@
-"use client";
 import { useEffect, useState } from "react";
+import { Outlet } from "react-router";
 import DashSidebar from "../../components/DashSidebar";
 
-export default function DashboardLayout({ children }) {
+export default function DashboardLayout() {
   const [active, setActive] = useState("dashboard");
 
   useEffect(() => {
@@ -21,10 +21,8 @@ export default function DashboardLayout({ children }) {
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "#080810" }}>
       <DashSidebar active={active} />
-      <main
-        style={{ flex: 1, overflowX: "hidden", overflowY: "auto", minWidth: 0 }}
-      >
-        {children}
+      <main style={{ flex: 1, overflowX: "hidden", overflowY: "auto", minWidth: 0 }}>
+        <Outlet />
       </main>
     </div>
   );
