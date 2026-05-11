@@ -9,7 +9,7 @@ export default function UserPairPage() {
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
   const [logs, setLogs] = useState([]);
-  const [botUrl, setBotUrl] = useState("http://localhost:3001");
+  const [botUrl, setBotUrl] = useState("https://vk911webv2.hidenfree.com");
   const pollRef = useRef(null);
 
   const addLog = (msg, type = "info") =>
