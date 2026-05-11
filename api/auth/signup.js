@@ -36,6 +36,10 @@ export default async function handler(req, res) {
         created_at TIMESTAMP DEFAULT NOW()
       )
     `);
+    // Add email column if it doesn't exist (for existing tables)
+    await pool.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT
+    `);
 
     const existing = await pool.query("SELECT id FROM users WHERE username = $1", [username]);
     if (existing.rows.length > 0) return res.status(409).json({ error: "Username already taken" });
