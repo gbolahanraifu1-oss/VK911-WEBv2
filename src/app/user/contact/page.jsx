@@ -15,9 +15,20 @@ export default function ContactPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSending(true);
-    await new Promise((r) => setTimeout(r, 1000));
-    setSent(true);
-    setSending(false);
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to send");
+      setSent(true);
+    } catch (err) {
+      alert("Failed to send: " + err.message);
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
