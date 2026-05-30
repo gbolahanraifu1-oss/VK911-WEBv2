@@ -30,7 +30,9 @@ export default function PairingPage() {
   const [qrCode, setQrCode] = useState("");
   const [status, setStatus] = useState("idle"); // idle | loading | connected | error
   const [logs, setLogs] = useState([]);
-  const [botUrl, setBotUrl] = useState("https://vk911webv2.hidenfree.com");
+  const [botUrl, setBotUrl] = useState(
+    () => localStorage.getItem("vk911_bot_url") || "https://vk911webv2.hidenfree.com"
+  );
   const [error, setError] = useState("");
   const pollRef = useRef(null);
 
@@ -114,6 +116,11 @@ export default function PairingPage() {
     },
     [],
   );
+
+  // Persist botUrl so dashboard layout can keepalive-ping on every page
+  useEffect(() => {
+    if (botUrl) localStorage.setItem("vk911_bot_url", botUrl);
+  }, [botUrl]);
 
   const stepsBotUrl = [
     "Deploy the bot to your VPS/server",
