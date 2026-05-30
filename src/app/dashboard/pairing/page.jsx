@@ -34,6 +34,7 @@ export default function PairingPage() {
     () => localStorage.getItem("vk911_bot_url") || "https://vk911webv2.hidenfree.com"
   );
   const [error, setError] = useState("");
+  const [botOnline, setBotOnline] = useState(null); // null=checking, true=online, false=offline
   const pollRef = useRef(null);
 
   const addLog = (msg, type = "info") =>
@@ -120,6 +121,17 @@ export default function PairingPage() {
   // Persist botUrl so dashboard layout can keepalive-ping on every page
   useEffect(() => {
     if (botUrl) localStorage.setItem("vk911_bot_url", botUrl);
+  }, [botUrl]);
+
+  // Auto-check bot reachability on mount and whenever botUrl changes
+  useEffect(() => {
+    if (!botUrl) return;
+    setBotOnline(null);
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 6000);
+    fetch(`${botUrl}/ping`, { signal: ctrl.signal })
+      .then((r) => { clearTimeout(t); setBotOnline(r.ok); })
+      .catch(() => { clearTimeout(t); setBotOnline(false); });
   }, [botUrl]);
 
   const stepsBotUrl = [
@@ -218,18 +230,18 @@ export default function PairingPage() {
                   padding: "10px 14px",
                   borderRadius: "8px",
                   background:
-                    status === "connected"
+                    (status === "connected" || (botOnline && status === "idle"))
                       ? "rgba(34,197,94,0.1)"
-                      : status === "error"
+                      : (status === "error" || botOnline === false)
                         ? "rgba(239,68,68,0.1)"
                         : "rgba(255,255,255,0.04)",
-                  border: `1px solid ${status === "connected" ? "rgba(34,197,94,0.3)" : status === "error" ? "rgba(239,68,68,0.3)" : "rgba(255,255,255,0.06)"}`,
+                  border: `1px solid ${(status === "connected" || (botOnline && status === "idle")) ? "rgba(34,197,94,0.3)" : (status === "error" || botOnline === false) ? "rgba(239,68,68,0.3)" : "rgba(255,255,255,0.06)"}`,
                   fontSize: "11px",
                   fontWeight: "600",
                   color:
-                    status === "connected"
+                    (status === "connected" || (botOnline && status === "idle"))
                       ? "#22c55e"
-                      : status === "error"
+                      : (status === "error" || botOnline === false)
                         ? "#ef4444"
                         : "#64748b",
                   whiteSpace: "nowrap",
@@ -255,7 +267,11 @@ export default function PairingPage() {
                       ? "Connecting..."
                       : status === "awaiting"
                         ? "Awaiting Scan"
-                        : "Offline"}
+                        : botOnline === null
+                          ? "Checking..."
+                          : botOnline
+                            ? "Online"
+                            : "Offline"}
               </div>
             </div>
             {/* Setup steps */}
