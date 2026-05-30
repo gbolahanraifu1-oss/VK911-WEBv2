@@ -14,10 +14,27 @@ export default function DashSidebar({ active }) {
   const [user, setUser] = useState(null);
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [botOnline, setBotOnline] = useState(null); // null=checking, true=online, false=offline
 
   useEffect(() => {
     const u = localStorage.getItem("vk911_user");
     if (u) setUser(JSON.parse(u));
+  }, []);
+
+  // Ping bot on mount and every 4 min to show live status dot
+  useEffect(() => {
+    const ping = () => {
+      const url = localStorage.getItem("vk911_bot_url");
+      if (!url) { setBotOnline(false); return; }
+      const ctrl = new AbortController();
+      const t = setTimeout(() => { ctrl.abort(); setBotOnline(false); }, 6000);
+      fetch(`${url}/ping`, { signal: ctrl.signal })
+        .then((r) => { clearTimeout(t); setBotOnline(r.ok); })
+        .catch(() => { clearTimeout(t); setBotOnline(false); });
+    };
+    ping();
+    const id = setInterval(ping, 4 * 60 * 1000);
+    return () => clearInterval(id);
   }, []);
 
   const handleLogout = () => {
@@ -38,8 +55,31 @@ export default function DashSidebar({ active }) {
         {!collapsed && (
           <div>
             <div style={{ fontSize: "14px", fontWeight: "800", color: "#f1f5f9", lineHeight: 1.2 }}>VK911 XMD</div>
-            <div style={{ fontSize: "10px", color: "#00ff88", fontFamily: "'JetBrains Mono', monospace", letterSpacing: "1px" }}>v2.0.3</div>
+            <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+              <div style={{ fontSize: "10px", color: "#00ff88", fontFamily: "'JetBrains Mono', monospace", letterSpacing: "1px" }}>v2.0.3</div>
+              <span style={{
+                display: "inline-flex", alignItems: "center", gap: "3px",
+                fontSize: "9px", fontWeight: "600", letterSpacing: "0.5px",
+                color: botOnline === null ? "#64748b" : botOnline ? "#22c55e" : "#ef4444",
+              }}>
+                <span style={{
+                  width: "5px", height: "5px", borderRadius: "50%",
+                  background: botOnline === null ? "#475569" : botOnline ? "#22c55e" : "#ef4444",
+                  boxShadow: botOnline ? "0 0 6px #22c55e" : "none",
+                  display: "inline-block",
+                }} />
+                {botOnline === null ? "..." : botOnline ? "BOT ON" : "BOT OFF"}
+              </span>
+            </div>
           </div>
+        )}
+        {collapsed && (
+          <div style={{
+            position: "absolute", top: "10px", right: "8px",
+            width: "7px", height: "7px", borderRadius: "50%",
+            background: botOnline === null ? "#475569" : botOnline ? "#22c55e" : "#ef4444",
+            boxShadow: botOnline ? "0 0 6px #22c55e" : "none",
+          }} />
         )}
         <button onClick={() => setCollapsed((c) => !c)} style={{ marginLeft: "auto", background: "none", border: "none", color: "#475569", cursor: "pointer", fontSize: "16px", padding: "4px" }}>
           {collapsed ? "›" : "‹"}
