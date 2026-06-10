@@ -18,21 +18,19 @@ export default function DashboardLayout() {
     else setActive("dashboard");
   }, []);
 
-  // ── Bot keepalive ──────────────────────────────────────────────────────────
-  // Pings the bot every 4 min while any dashboard page is open.
-  // Keeps HidenCloud's external reverse proxy from timing out the route,
-  // preventing the "zombie" dead connection after long uptime.
+  // Keepalive ping to bot every 4 min to prevent proxy timeout
   useEffect(() => {
     const ping = () => {
       const url = localStorage.getItem("vk911_bot_url");
       if (!url) return;
       const ctrl = new AbortController();
       const t = setTimeout(() => ctrl.abort(), 8000);
-      fetch(`${url}/ping`, { signal: ctrl.signal })
+      // Bot exposes /health (not /ping)
+      fetch(`${url}/health`, { signal: ctrl.signal })
         .then(() => clearTimeout(t))
         .catch(() => clearTimeout(t));
     };
-    ping(); // immediate ping on mount
+    ping();
     const id = setInterval(ping, 4 * 60 * 1000);
     return () => clearInterval(id);
   }, []);

@@ -1,98 +1,72 @@
-"use client";
 import { useState, useEffect, useRef } from "react";
 
 const Tab = ({ label, active, onClick }) => (
-  <button
-    onClick={onClick}
-    style={{
-      padding: "10px 22px",
-      background: active ? "rgba(0,255,136,0.1)" : "transparent",
-      border: active
-        ? "1px solid rgba(0,255,136,0.3)"
-        : "1px solid transparent",
-      borderRadius: "8px",
-      color: active ? "#00ff88" : "#64748b",
-      fontSize: "13px",
-      fontWeight: active ? "600" : "400",
-      cursor: "pointer",
-      transition: "all 0.15s",
-    }}
-  >
+  <button onClick={onClick} style={{ padding: "10px 22px", background: active ? "rgba(0,255,136,0.1)" : "transparent", border: active ? "1px solid rgba(0,255,136,0.3)" : "1px solid transparent", borderRadius: "8px", color: active ? "#00ff88" : "#64748b", fontSize: "13px", fontWeight: active ? "600" : "400", cursor: "pointer", transition: "all 0.15s" }}>
     {label}
   </button>
 );
 
 export default function PairingPage() {
-  const [method, setMethod] = useState("qr");
+  const [method, setMethod] = useState("code");
   const [phone, setPhone] = useState("");
-  const [countryCode, setCountryCode] = useState("+1");
+  const [countryCode, setCountryCode] = useState("+234");
   const [pairingCode, setPairingCode] = useState("");
-  const [qrCode, setQrCode] = useState("");
-  const [status, setStatus] = useState("idle"); // idle | loading | connected | error
+  const [status, setStatus] = useState("idle");
   const [logs, setLogs] = useState([]);
-  const [botUrl, setBotUrl] = useState(
-    () => localStorage.getItem("vk911_bot_url") || "https://vk911webv2.hidenfree.com"
-  );
+  const [botUrl, setBotUrl] = useState(() => localStorage.getItem("vk911_bot_url") || "");
   const [error, setError] = useState("");
-  const [botOnline, setBotOnline] = useState(null); // null=checking, true=online, false=offline
+  const [botOnline, setBotOnline] = useState(null);
   const pollRef = useRef(null);
 
   const addLog = (msg, type = "info") =>
-    setLogs((l) => [
-      { msg, type, time: new Date().toLocaleTimeString() },
-      ...l.slice(0, 19),
-    ]);
+    setLogs((l) => [{ msg, type, time: new Date().toLocaleTimeString() }, ...l.slice(0, 19)]);
+
+  // Save bot URL whenever it changes
+  useEffect(() => {
+    if (botUrl) localStorage.setItem("vk911_bot_url", botUrl);
+  }, [botUrl]);
+
+  // Check bot health on mount and on botUrl change
+  useEffect(() => {
+    if (!botUrl) { setBotOnline(false); return; }
+    const check = async () => {
+      try {
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), 6000);
+        const res = await fetch(`${botUrl}/health`, { signal: ctrl.signal });
+        clearTimeout(t);
+        setBotOnline(res.ok);
+        if (res.ok) addLog("Bot server reachable", "success");
+        else addLog("Bot returned non-200 on /health", "warn");
+      } catch {
+        setBotOnline(false);
+        addLog("Cannot reach bot server", "error");
+      }
+    };
+    check();
+  }, [botUrl]);
 
   const requestPairingCode = async () => {
-    if (!phone) {
-      setError("Enter your WhatsApp number");
-      return;
-    }
-    setError("");
-    setStatus("loading");
-    setPairingCode("");
-    addLog(`Requesting pairing code for ${countryCode}${phone}...`, "info");
+    if (!phone) { setError("Enter your WhatsApp number"); return; }
+    if (!botUrl) { setError("Enter your bot server URL first"); return; }
+    setError(""); setStatus("loading"); setPairingCode("");
+    const fullPhone = `${countryCode}${phone}`.replace(/\D/g, "");
+    addLog(`Requesting pairing code for ${fullPhone}...`, "info");
     try {
-      const res = await fetch(`${botUrl}/api/pair/code`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          phone: `${countryCode}${phone}`.replace(/\D/g, ""),
-        }),
-      });
+      // Bot uses GET /pair?phone=...
+      const res = await fetch(`${botUrl}/pair?phone=${encodeURIComponent(fullPhone)}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to get pairing code");
-      setPairingCode(data.code);
+      const code = data.code || data.pairingCode || data.pair_code;
+      if (!code) throw new Error("No code returned from bot");
+      setPairingCode(code);
       setStatus("awaiting");
-      addLog(`Pairing code generated: ${data.code}`, "success");
+      addLog(`Pairing code: ${code}`, "success");
       startPollStatus();
     } catch (err) {
-      setError(
-        `Bot server error: ${err.message}. Make sure bot is running at ${botUrl}`,
-      );
+      setError(`Bot error: ${err.message}. Make sure bot is running at ${botUrl}`);
       setStatus("error");
       addLog(err.message, "error");
-      console.error(err);
-    }
-  };
-
-  const requestQR = async () => {
-    setStatus("loading");
-    setQrCode("");
-    addLog("Requesting QR code from bot server...", "info");
-    try {
-      const res = await fetch(`${botUrl}/api/pair/qr`);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed");
-      setQrCode(data.qr);
-      setStatus("awaiting");
-      addLog("QR Code received — scan with WhatsApp", "success");
-      startPollStatus();
-    } catch (err) {
-      setError(`Cannot reach bot at ${botUrl}. Start the bot first.`);
-      setStatus("error");
-      addLog(err.message, "error");
-      console.error(err);
     }
   };
 
@@ -100,799 +74,119 @@ export default function PairingPage() {
     if (pollRef.current) clearInterval(pollRef.current);
     pollRef.current = setInterval(async () => {
       try {
-        const res = await fetch(`${botUrl}/api/status`);
+        const res = await fetch(`${botUrl}/health`);
         const data = await res.json();
-        if (data.connected) {
+        if (data.status === "ok" && data.connected) {
           setStatus("connected");
-          addLog("✓ Bot successfully connected to WhatsApp!", "success");
+          addLog("Bot connected to WhatsApp!", "success");
           clearInterval(pollRef.current);
         }
       } catch (_) {}
-    }, 3000);
+    }, 4000);
   };
 
-  useEffect(
-    () => () => {
-      if (pollRef.current) clearInterval(pollRef.current);
-    },
-    [],
-  );
+  useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current); }, []);
 
-  // Persist botUrl so dashboard layout can keepalive-ping on every page
-  useEffect(() => {
-    if (botUrl) localStorage.setItem("vk911_bot_url", botUrl);
-  }, [botUrl]);
-
-  // Auto-check bot reachability on mount and whenever botUrl changes
-  useEffect(() => {
-    if (!botUrl) return;
-    setBotOnline(null);
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 6000);
-    fetch(`${botUrl}/ping`, { signal: ctrl.signal })
-      .then((r) => { clearTimeout(t); setBotOnline(r.ok); })
-      .catch(() => { clearTimeout(t); setBotOnline(false); });
-  }, [botUrl]);
-
-  const stepsBotUrl = [
-    "Deploy the bot to your VPS/server",
-    "Run: npm install && npm start (inside bot/ folder)",
-    "Note the bot API port (default: 3001)",
-    "Enter the URL below and connect",
-  ];
-  const stepsQR = [
-    "Open WhatsApp on your phone",
-    "Tap ⋮ Menu → Linked Devices",
-    'Tap "Link a Device"',
-    "Scan the QR code shown here",
-  ];
-  const stepsCode = [
-    "Open WhatsApp on your phone",
-    "Tap ⋮ Menu → Linked Devices",
-    'Tap "Link a Device" → "Link with phone number"',
-    "Enter the 8-character code shown below",
-  ];
+  const statusColor = { idle: "#475569", loading: "#f59e0b", awaiting: "#f59e0b", connected: "#22c55e", error: "#ef4444" }[status];
 
   return (
-    <div style={{ padding: "32px", maxWidth: "1100px" }}>
-      <div style={{ marginBottom: "32px" }}>
-        <h1
-          style={{
-            fontSize: "22px",
-            fontWeight: "800",
-            color: "#f1f5f9",
-            margin: "0 0 6px 0",
-          }}
-        >
-          ⟳ Web Pairing
-        </h1>
-        <p style={{ color: "#475569", fontSize: "13px", margin: 0 }}>
-          Connect your WhatsApp account to VK911 XMD bot
-        </p>
+    <div style={{ padding: "32px", maxWidth: "900px" }}>
+      <div style={{ marginBottom: "28px" }}>
+        <h1 style={{ fontSize: "22px", fontWeight: "800", color: "#f1f5f9", margin: "0 0 6px 0" }}>⟳ Web Pairing</h1>
+        <p style={{ color: "#475569", fontSize: "13px", margin: 0 }}>Connect your WhatsApp account to VK911 XMD</p>
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1.2fr 1fr",
-          gap: "24px",
-        }}
-      >
-        {/* Left - Main panel */}
+      {/* Bot URL Config */}
+      <div style={{ background: "#0f0f1a", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "14px", padding: "22px", marginBottom: "20px" }}>
+        <label style={{ display: "block", fontSize: "11px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "10px" }}>Bot Server URL</label>
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+          <input value={botUrl} onChange={(e) => setBotUrl(e.target.value.replace(/\/$/, ""))} placeholder="https://your-bot-server.com" style={{ flex: 1, minWidth: "260px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "10px", padding: "11px 16px", fontSize: "13px", color: "#e2e8f0", outline: "none", fontFamily: "monospace" }} onFocus={(e) => (e.target.style.borderColor = "rgba(0,255,136,0.4)")} onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.08)")} />
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "0 14px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "10px", fontSize: "12px", whiteSpace: "nowrap" }}>
+            <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: botOnline === null ? "#475569" : botOnline ? "#22c55e" : "#ef4444", boxShadow: botOnline ? "0 0 6px #22c55e" : "none", display: "inline-block" }} />
+            <span style={{ color: botOnline === null ? "#64748b" : botOnline ? "#22c55e" : "#ef4444" }}>
+              {botOnline === null ? "Checking..." : botOnline ? "Online" : "Offline"}
+            </span>
+          </div>
+        </div>
+        <p style={{ fontSize: "11px", color: "#475569", margin: "8px 0 0 0" }}>The public URL where your VK911 bot is running (e.g. Heroku, Railway, VPS)</p>
+      </div>
+
+      <div style={{ display: "flex", gap: "8px", marginBottom: "24px" }}>
+        <Tab label="Pairing Code" active={method === "code"} onClick={() => setMethod("code")} />
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+        {/* Input Panel */}
+        <div style={{ background: "#0f0f1a", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "14px", padding: "24px" }}>
+          <h3 style={{ fontSize: "13px", fontWeight: "700", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.8px", margin: "0 0 20px 0" }}>⬦ Enter Phone Number</h3>
+
+          <label style={{ display: "block", fontSize: "11px", fontWeight: "600", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "8px" }}>WhatsApp Number</label>
+          <div style={{ display: "flex", gap: "8px", marginBottom: "20px" }}>
+            <select value={countryCode} onChange={(e) => setCountryCode(e.target.value)} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "10px", padding: "11px 12px", fontSize: "13px", color: "#e2e8f0", outline: "none", cursor: "pointer" }}>
+              {["+1","+7","+20","+27","+30","+31","+32","+33","+34","+36","+39","+40","+41","+43","+44","+45","+46","+47","+48","+49","+51","+52","+54","+55","+56","+57","+58","+60","+61","+62","+63","+64","+65","+66","+81","+82","+84","+86","+90","+91","+92","+93","+94","+95","+98","+212","+213","+216","+218","+220","+221","+222","+223","+224","+225","+226","+227","+228","+229","+230","+231","+232","+233","+234","+235","+236","+237","+238","+239","+240","+241","+242","+243","+244","+245","+246","+247","+248","+249","+250","+251","+252","+253","+254","+255","+256","+257","+258","+260","+261","+262","+263","+264","+265","+266","+267","+268","+269","+290","+291","+297","+298","+299","+350","+351","+352","+353","+354","+355","+356","+357","+358","+359","+370","+371","+372","+373","+374","+375","+376","+377","+380","+381","+382","+385","+386","+387","+389","+420","+421","+423","+500","+501","+502","+503","+504","+505","+506","+507","+508","+509","+590","+591","+592","+593","+594","+595","+596","+597","+598","+599","+670","+672","+673","+674","+675","+676","+677","+678","+679","+680","+681","+682","+683","+685","+686","+687","+688","+689","+690","+691","+692","+850","+852","+853","+855","+856","+880","+886","+960","+961","+962","+963","+964","+965","+966","+967","+968","+970","+971","+972","+973","+974","+975","+976","+977","+992","+993","+994","+995","+996","+998"].map(cc => (
+                <option key={cc} value={cc}>{cc}</option>
+              ))}
+            </select>
+            <input value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))} placeholder="8012345678" type="tel" style={{ flex: 1, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "10px", padding: "11px 16px", fontSize: "14px", color: "#e2e8f0", outline: "none", fontFamily: "monospace" }} onFocus={(e) => (e.target.style.borderColor = "rgba(0,255,136,0.4)")} onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.08)")} />
+          </div>
+
+          {error && <div style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: "10px", padding: "11px 14px", marginBottom: "16px", fontSize: "12px", color: "#f87171" }}>⚠ {error}</div>}
+
+          <button onClick={requestPairingCode} disabled={status === "loading" || !botUrl} style={{ width: "100%", padding: "13px", background: status === "loading" || !botUrl ? "rgba(0,255,136,0.25)" : "linear-gradient(135deg, #00ff88, #06b6d4)", border: "none", borderRadius: "10px", fontSize: "14px", fontWeight: "700", color: "#080810", cursor: status === "loading" || !botUrl ? "not-allowed" : "pointer", boxShadow: status === "loading" || !botUrl ? "none" : "0 0 20px rgba(0,255,136,0.25)" }}>
+            {status === "loading" ? "Requesting..." : "Get Pairing Code"}
+          </button>
+
+          <p style={{ fontSize: "11px", color: "#475569", margin: "12px 0 0 0", lineHeight: "1.7" }}>
+            1. Enter your number above<br />
+            2. Click "Get Pairing Code"<br />
+            3. Open WhatsApp → Linked Devices → Link with phone number<br />
+            4. Enter the 8-character code shown
+          </p>
+        </div>
+
+        {/* Output Panel */}
         <div>
-          {/* Bot URL */}
-          <div
-            style={{
-              background: "#0f0f1a",
-              border: "1px solid rgba(255,255,255,0.06)",
-              borderRadius: "14px",
-              padding: "22px",
-              marginBottom: "20px",
-            }}
-          >
-            <h3
-              style={{
-                fontSize: "12px",
-                fontWeight: "600",
-                color: "#64748b",
-                textTransform: "uppercase",
-                letterSpacing: "0.8px",
-                margin: "0 0 14px 0",
-              }}
-            >
-              ⬦ Bot Server URL
-            </h3>
-            <div style={{ display: "flex", gap: "10px" }}>
-              <input
-                value={botUrl}
-                onChange={(e) => setBotUrl(e.target.value)}
-                placeholder="http://your-vps-ip:3001"
-                style={{
-                  flex: 1,
-                  background: "rgba(255,255,255,0.04)",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  borderRadius: "8px",
-                  padding: "10px 14px",
-                  fontSize: "13px",
-                  color: "#e2e8f0",
-                  outline: "none",
-                  fontFamily: "'JetBrains Mono', monospace",
-                }}
-                onFocus={(e) =>
-                  (e.target.style.borderColor = "rgba(0,255,136,0.4)")
-                }
-                onBlur={(e) =>
-                  (e.target.style.borderColor = "rgba(255,255,255,0.08)")
-                }
-              />
-              <div
-                style={{
-                  padding: "10px 14px",
-                  borderRadius: "8px",
-                  background:
-                    (status === "connected" || (botOnline && status === "idle"))
-                      ? "rgba(34,197,94,0.1)"
-                      : (status === "error" || botOnline === false)
-                        ? "rgba(239,68,68,0.1)"
-                        : "rgba(255,255,255,0.04)",
-                  border: `1px solid ${(status === "connected" || (botOnline && status === "idle")) ? "rgba(34,197,94,0.3)" : (status === "error" || botOnline === false) ? "rgba(239,68,68,0.3)" : "rgba(255,255,255,0.06)"}`,
-                  fontSize: "11px",
-                  fontWeight: "600",
-                  color:
-                    (status === "connected" || (botOnline && status === "idle"))
-                      ? "#22c55e"
-                      : (status === "error" || botOnline === false)
-                        ? "#ef4444"
-                        : "#64748b",
-                  whiteSpace: "nowrap",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                }}
-              >
-                <span
-                  style={{
-                    width: "6px",
-                    height: "6px",
-                    borderRadius: "50%",
-                    background: "currentColor",
-                    display: "inline-block",
-                  }}
-                />
-                {status === "connected"
-                  ? "Connected"
-                  : status === "error"
-                    ? "Error"
-                    : status === "loading"
-                      ? "Connecting..."
-                      : status === "awaiting"
-                        ? "Awaiting Scan"
-                        : botOnline === null
-                          ? "Checking..."
-                          : botOnline
-                            ? "Online"
-                            : "Offline"}
-              </div>
-            </div>
-            {/* Setup steps */}
-            <div
-              style={{
-                marginTop: "14px",
-                padding: "12px",
-                background: "rgba(0,0,0,0.3)",
-                borderRadius: "8px",
-              }}
-            >
-              <p
-                style={{
-                  fontSize: "10px",
-                  color: "#334155",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.8px",
-                  margin: "0 0 8px 0",
-                }}
-              >
-                Setup Steps
-              </p>
-              {stepsBotUrl.map((s, i) => (
-                <p
-                  key={i}
-                  style={{
-                    fontSize: "12px",
-                    color: "#64748b",
-                    margin: "0 0 4px 0",
-                    fontFamily: "monospace",
-                  }}
-                >
-                  {i + 1}. {s}
-                </p>
-              ))}
-            </div>
-          </div>
-
-          {/* Method Tabs */}
-          <div
-            style={{
-              background: "#0f0f1a",
-              border: "1px solid rgba(255,255,255,0.06)",
-              borderRadius: "14px",
-              padding: "22px",
-            }}
-          >
-            <div style={{ display: "flex", gap: "8px", marginBottom: "24px" }}>
-              <Tab
-                label="📱 QR Code"
-                active={method === "qr"}
-                onClick={() => {
-                  setMethod("qr");
-                  setStatus("idle");
-                  setPairingCode("");
-                  setError("");
-                }}
-              />
-              <Tab
-                label="# Pairing Code"
-                active={method === "code"}
-                onClick={() => {
-                  setMethod("code");
-                  setStatus("idle");
-                  setQrCode("");
-                  setError("");
-                }}
-              />
-            </div>
-
-            {error && (
-              <div
-                style={{
-                  background: "rgba(239,68,68,0.08)",
-                  border: "1px solid rgba(239,68,68,0.2)",
-                  borderRadius: "8px",
-                  padding: "10px 14px",
-                  marginBottom: "16px",
-                  fontSize: "12px",
-                  color: "#f87171",
-                }}
-              >
-                ⚠ {error}
-              </div>
-            )}
-
-            {method === "qr" && (
+          {/* Pairing Code Display */}
+          <div style={{ background: "#0f0f1a", border: `1px solid ${pairingCode ? "rgba(0,255,136,0.3)" : "rgba(255,255,255,0.06)"}`, borderRadius: "14px", padding: "24px", marginBottom: "16px" }}>
+            <h3 style={{ fontSize: "13px", fontWeight: "700", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.8px", margin: "0 0 20px 0" }}>⬦ Pairing Code</h3>
+            {pairingCode ? (
               <div>
-                {/* Steps */}
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "10px",
-                    marginBottom: "20px",
-                  }}
-                >
-                  {stepsQR.map((s, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        display: "flex",
-                        gap: "12px",
-                        alignItems: "center",
-                      }}
-                    >
-                      <span
-                        style={{
-                          width: "22px",
-                          height: "22px",
-                          borderRadius: "50%",
-                          background: "rgba(0,255,136,0.1)",
-                          border: "1px solid rgba(0,255,136,0.25)",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontSize: "10px",
-                          fontWeight: "700",
-                          color: "#00ff88",
-                          flexShrink: 0,
-                        }}
-                      >
-                        {i + 1}
-                      </span>
-                      <span style={{ fontSize: "13px", color: "#94a3b8" }}>
-                        {s}
-                      </span>
-                    </div>
-                  ))}
+                <div style={{ fontSize: "36px", fontFamily: "'JetBrains Mono', monospace", fontWeight: "800", color: "#00ff88", letterSpacing: "8px", textAlign: "center", padding: "20px 0", textShadow: "0 0 30px rgba(0,255,136,0.4)" }}>
+                  {pairingCode}
                 </div>
-
-                {/* QR Display */}
-                <div
-                  style={{
-                    width: "200px",
-                    height: "200px",
-                    background: "rgba(255,255,255,0.03)",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                    borderRadius: "12px",
-                    margin: "0 auto 20px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    position: "relative",
-                  }}
-                >
-                  {qrCode ? (
-                    <img
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(qrCode)}&bgcolor=0f0f1a&color=00ff88`}
-                      alt="QR Code"
-                      style={{
-                        width: "180px",
-                        height: "180px",
-                        borderRadius: "8px",
-                      }}
-                    />
-                  ) : (
-                    <div style={{ textAlign: "center" }}>
-                      <div
-                        style={{
-                          fontSize: "40px",
-                          marginBottom: "8px",
-                          opacity: 0.3,
-                        }}
-                      >
-                        ⬡
-                      </div>
-                      <p
-                        style={{
-                          fontSize: "12px",
-                          color: "#334155",
-                          margin: 0,
-                        }}
-                      >
-                        QR appears here
-                      </p>
-                    </div>
-                  )}
-                  {status === "loading" && (
-                    <div
-                      style={{
-                        position: "absolute",
-                        inset: 0,
-                        background: "rgba(8,8,16,0.8)",
-                        borderRadius: "12px",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: "12px",
-                        color: "#00ff88",
-                        animation: "pulse 1.5s infinite",
-                      }}
-                    >
-                      Loading...
-                    </div>
-                  )}
-                </div>
-
-                <button
-                  onClick={requestQR}
-                  disabled={status === "loading" || status === "connected"}
-                  style={{
-                    width: "100%",
-                    padding: "13px",
-                    background:
-                      status === "connected"
-                        ? "rgba(34,197,94,0.2)"
-                        : "linear-gradient(135deg, #00ff88, #06b6d4)",
-                    border: "none",
-                    borderRadius: "10px",
-                    color: status === "connected" ? "#22c55e" : "#080810",
-                    fontWeight: "700",
-                    fontSize: "13px",
-                    cursor: "pointer",
-                    opacity: status === "loading" ? 0.6 : 1,
-                  }}
-                >
-                  {status === "connected"
-                    ? "✓ Connected"
-                    : status === "loading"
-                      ? "— Generating QR..."
-                      : "→ Generate QR Code"}
-                </button>
+                <p style={{ textAlign: "center", fontSize: "11px", color: "#475569", margin: "8px 0 0 0" }}>Enter this code in WhatsApp → Linked Devices → Link with phone number</p>
               </div>
-            )}
-
-            {method === "code" && (
-              <div>
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "10px",
-                    marginBottom: "20px",
-                  }}
-                >
-                  {stepsCode.map((s, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        display: "flex",
-                        gap: "12px",
-                        alignItems: "center",
-                      }}
-                    >
-                      <span
-                        style={{
-                          width: "22px",
-                          height: "22px",
-                          borderRadius: "50%",
-                          background: "rgba(99,102,241,0.1)",
-                          border: "1px solid rgba(99,102,241,0.25)",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontSize: "10px",
-                          fontWeight: "700",
-                          color: "#6366f1",
-                          flexShrink: 0,
-                        }}
-                      >
-                        {i + 1}
-                      </span>
-                      <span style={{ fontSize: "13px", color: "#94a3b8" }}>
-                        {s}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Phone Input */}
-                <div style={{ marginBottom: "16px" }}>
-                  <label
-                    style={{
-                      display: "block",
-                      fontSize: "11px",
-                      fontWeight: "600",
-                      color: "#64748b",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.8px",
-                      marginBottom: "8px",
-                    }}
-                  >
-                    WhatsApp Phone Number
-                  </label>
-                  <div style={{ display: "flex", gap: "8px" }}>
-                    <select
-                      value={countryCode}
-                      onChange={(e) => setCountryCode(e.target.value)}
-                      style={{
-                        background: "rgba(255,255,255,0.04)",
-                        border: "1px solid rgba(255,255,255,0.08)",
-                        borderRadius: "8px",
-                        padding: "11px 10px",
-                        fontSize: "13px",
-                        color: "#e2e8f0",
-                        outline: "none",
-                        fontFamily: "'JetBrains Mono', monospace",
-                        flexShrink: 0,
-                      }}
-                    >
-                      {countryCodes.map((c) => (
-                        <option
-                          key={c.code}
-                          value={c.code}
-                          style={{ background: "#0f0f1a" }}
-                        >
-                          {c.code} {c.country}
-                        </option>
-                      ))}
-                    </select>
-                    <input
-                      value={phone}
-                      onChange={(e) =>
-                        setPhone(e.target.value.replace(/\D/g, ""))
-                      }
-                      placeholder="7001234567"
-                      type="tel"
-                      style={{
-                        flex: 1,
-                        background: "rgba(255,255,255,0.04)",
-                        border: "1px solid rgba(255,255,255,0.08)",
-                        borderRadius: "8px",
-                        padding: "11px 14px",
-                        fontSize: "14px",
-                        color: "#e2e8f0",
-                        outline: "none",
-                        fontFamily: "'JetBrains Mono', monospace",
-                      }}
-                      onFocus={(e) =>
-                        (e.target.style.borderColor = "rgba(99,102,241,0.5)")
-                      }
-                      onBlur={(e) =>
-                        (e.target.style.borderColor = "rgba(255,255,255,0.08)")
-                      }
-                    />
-                  </div>
-                  <p
-                    style={{
-                      fontSize: "11px",
-                      color: "#334155",
-                      margin: "6px 0 0 0",
-                    }}
-                  >
-                    Include country code without leading 0. Example: 7001234567
-                    for Nigeria (+234)
-                  </p>
-                </div>
-
-                {/* Pairing Code Display */}
-                {pairingCode && (
-                  <div
-                    style={{
-                      marginBottom: "16px",
-                      padding: "20px",
-                      background: "rgba(99,102,241,0.08)",
-                      border: "1px solid rgba(99,102,241,0.25)",
-                      borderRadius: "12px",
-                      textAlign: "center",
-                    }}
-                  >
-                    <p
-                      style={{
-                        fontSize: "11px",
-                        color: "#6366f1",
-                        textTransform: "uppercase",
-                        letterSpacing: "1px",
-                        margin: "0 0 12px 0",
-                      }}
-                    >
-                      Your Pairing Code
-                    </p>
-                    <div
-                      style={{
-                        fontSize: "36px",
-                        fontWeight: "800",
-                        letterSpacing: "8px",
-                        color: "#e2e8f0",
-                        fontFamily: "'JetBrains Mono', monospace",
-                      }}
-                    >
-                      {pairingCode}
-                    </div>
-                    <p
-                      style={{
-                        fontSize: "11px",
-                        color: "#475569",
-                        margin: "12px 0 0 0",
-                      }}
-                    >
-                      Enter this code in WhatsApp → Linked Devices → Link with
-                      phone number
-                    </p>
-                  </div>
-                )}
-
-                <button
-                  onClick={requestPairingCode}
-                  disabled={status === "loading" || status === "connected"}
-                  style={{
-                    width: "100%",
-                    padding: "13px",
-                    background:
-                      status === "connected"
-                        ? "rgba(34,197,94,0.2)"
-                        : "linear-gradient(135deg, #6366f1, #8b5cf6)",
-                    border: "none",
-                    borderRadius: "10px",
-                    color: status === "connected" ? "#22c55e" : "#fff",
-                    fontWeight: "700",
-                    fontSize: "13px",
-                    cursor: "pointer",
-                    opacity: status === "loading" ? 0.6 : 1,
-                  }}
-                >
-                  {status === "connected"
-                    ? "✓ Connected"
-                    : status === "loading"
-                      ? "— Generating Code..."
-                      : "→ Generate Pairing Code"}
-                </button>
+            ) : (
+              <div style={{ textAlign: "center", padding: "32px 0" }}>
+                <div style={{ fontSize: "40px", marginBottom: "12px", opacity: 0.3 }}>⟳</div>
+                <p style={{ fontSize: "12px", color: "#334155", margin: 0 }}>{status === "loading" ? "Generating code..." : "Code will appear here"}</p>
               </div>
             )}
           </div>
-        </div>
 
-        {/* Right - Logs & Info */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
           {/* Status */}
-          <div
-            style={{
-              background: "#0f0f1a",
-              border: "1px solid rgba(255,255,255,0.06)",
-              borderRadius: "14px",
-              padding: "22px",
-            }}
-          >
-            <h3
-              style={{
-                fontSize: "12px",
-                fontWeight: "600",
-                color: "#64748b",
-                textTransform: "uppercase",
-                letterSpacing: "0.8px",
-                margin: "0 0 16px 0",
-              }}
-            >
-              ⬦ Connection Status
-            </h3>
-            <div
-              style={{ display: "flex", flexDirection: "column", gap: "10px" }}
-            >
-              {[
-                {
-                  label: "Bot Server",
-                  val:
-                    status !== "idle" && status !== "error"
-                      ? "Reachable"
-                      : "Not checked",
-                  ok: status !== "idle" && status !== "error",
-                },
-                {
-                  label: "WhatsApp Link",
-                  val: status === "connected" ? "Linked" : "Pending",
-                  ok: status === "connected",
-                },
-                {
-                  label: "Session",
-                  val: status === "connected" ? "Active" : "None",
-                  ok: status === "connected",
-                },
-              ].map((item) => (
-                <div
-                  key={item.label}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <span style={{ fontSize: "13px", color: "#64748b" }}>
-                    {item.label}
-                  </span>
-                  <span
-                    style={{
-                      padding: "3px 10px",
-                      borderRadius: "99px",
-                      fontSize: "11px",
-                      fontWeight: "600",
-                      background: item.ok
-                        ? "rgba(34,197,94,0.1)"
-                        : "rgba(100,116,139,0.1)",
-                      color: item.ok ? "#22c55e" : "#475569",
-                      border: `1px solid ${item.ok ? "rgba(34,197,94,0.3)" : "rgba(100,116,139,0.2)"}`,
-                    }}
-                  >
-                    {item.val}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Logs */}
-          <div
-            style={{
-              background: "#0f0f1a",
-              border: "1px solid rgba(255,255,255,0.06)",
-              borderRadius: "14px",
-              padding: "22px",
-              flex: 1,
-            }}
-          >
-            <h3
-              style={{
-                fontSize: "12px",
-                fontWeight: "600",
-                color: "#64748b",
-                textTransform: "uppercase",
-                letterSpacing: "0.8px",
-                margin: "0 0 14px 0",
-              }}
-            >
-              ⬦ Pairing Logs
-            </h3>
-            <div
-              style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: "11px",
-                maxHeight: "260px",
-                overflowY: "auto",
-              }}
-            >
-              {logs.length === 0 && (
-                <p style={{ color: "#334155", fontSize: "12px" }}>
-                  — No events yet
-                </p>
-              )}
-              {logs.map((log, i) => (
-                <div
-                  key={i}
-                  style={{
-                    marginBottom: "8px",
-                    paddingBottom: "8px",
-                    borderBottom: "1px solid rgba(255,255,255,0.03)",
-                  }}
-                >
-                  <span style={{ color: "#334155" }}>{log.time} </span>
-                  <span
-                    style={{
-                      color:
-                        log.type === "success"
-                          ? "#22c55e"
-                          : log.type === "error"
-                            ? "#ef4444"
-                            : "#6366f1",
-                    }}
-                  >
-                    [{log.type}]{" "}
-                  </span>
-                  <span style={{ color: "#64748b" }}>{log.msg}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Note */}
-          <div
-            style={{
-              background: "rgba(245,158,11,0.06)",
-              border: "1px solid rgba(245,158,11,0.2)",
-              borderRadius: "14px",
-              padding: "16px 18px",
-            }}
-          >
-            <p
-              style={{
-                fontSize: "12px",
-                color: "#d97706",
-                margin: "0 0 8px 0",
-                fontWeight: "600",
-              }}
-            >
-              ⚠ Important Note
-            </p>
-            <p
-              style={{
-                fontSize: "11px",
-                color: "#92400e",
-                margin: 0,
-                lineHeight: "1.6",
-              }}
-            >
-              This dashboard connects to your self-hosted bot API. The bot must
-              be running on your VPS/server before pairing. Each session is
-              isolated and stored securely.
-            </p>
+          <div style={{ background: "#0f0f1a", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "14px", padding: "16px 20px", display: "flex", alignItems: "center", gap: "10px" }}>
+            <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: statusColor, boxShadow: status === "connected" ? `0 0 8px ${statusColor}` : "none", flexShrink: 0 }} />
+            <span style={{ fontSize: "12px", color: statusColor, fontWeight: "600", fontFamily: "monospace" }}>
+              {{ idle: "Waiting", loading: "Requesting code...", awaiting: "Waiting for scan...", connected: "Connected!", error: "Error" }[status]}
+            </span>
           </div>
         </div>
       </div>
+
+      {/* Logs */}
+      {logs.length > 0 && (
+        <div style={{ background: "#080810", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "14px", padding: "18px", marginTop: "20px", maxHeight: "200px", overflowY: "auto" }}>
+          <div style={{ fontSize: "11px", color: "#334155", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "12px" }}>Activity Log</div>
+          {logs.map((log, i) => (
+            <div key={i} style={{ display: "flex", gap: "12px", marginBottom: "8px", fontFamily: "'JetBrains Mono', monospace", fontSize: "11px" }}>
+              <span style={{ color: "#334155", flexShrink: 0 }}>{log.time}</span>
+              <span style={{ color: { info: "#6366f1", success: "#00ff88", error: "#ef4444", warn: "#f59e0b" }[log.type] }}>[{log.type.toUpperCase()}]</span>
+              <span style={{ color: "#64748b" }}>{log.msg}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
-
-const countryCodes = [
-  { code: "+1", country: "US/CA" },
-  { code: "+234", country: "NG" },
-  { code: "+254", country: "KE" },
-  { code: "+27", country: "ZA" },
-  { code: "+233", country: "GH" },
-  { code: "+44", country: "UK" },
-  { code: "+91", country: "IN" },
-  { code: "+1242", country: "BS" },
-  { code: "+63", country: "PH" },
-  { code: "+62", country: "ID" },
-  { code: "+55", country: "BR" },
-  { code: "+49", country: "DE" },
-  { code: "+33", country: "FR" },
-  { code: "+92", country: "PK" },
-  { code: "+880", country: "BD" },
-  { code: "+20", country: "EG" },
-  { code: "+213", country: "DZ" },
-  { code: "+212", country: "MA" },
-];
