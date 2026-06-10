@@ -4,7 +4,12 @@
   "outputDirectory": "build/client",
   "framework": null,
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/api/auth/login",    "destination": "/api/auth" },
+    { "source": "/api/auth/signup",   "destination": "/api/auth" },
+    { "source": "/api/download/:file","destination": "/api/download" },
+    { "source": "/api/sessions/:id",  "destination": "/api/sessions" },
+    { "source": "/api/user/session",  "destination": "/api/session" },
+    { "source": "/api/(.*)",          "destination": "/api/$1" },
+    { "source": "/(.*)",              "destination": "/index.html" }
   ]
 }

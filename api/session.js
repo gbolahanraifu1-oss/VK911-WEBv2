@@ -27,6 +27,25 @@ export default async function handler(req, res) {
       )
     `);
 
+    const auth = req.headers.authorization;
+    // /api/user/session is rewritten here — detect by URL or auth presence for user-specific lookup
+    const isUserRoute = (req.url || "").includes("user");
+
+    if (isUserRoute && req.method === "GET" && auth?.startsWith("Bearer ")) {
+      const token = auth.slice(7);
+      const decoded = Buffer.from(token, "base64").toString("utf-8");
+      const userId = decoded.split(":")[0];
+      const userRes = await pool.query("SELECT username FROM users WHERE id = $1", [userId])
+        .catch(() => ({ rows: [] }));
+      if (!userRes.rows.length) return res.status(200).json(null);
+      const username = userRes.rows[0].username;
+      const sessionRes = await pool.query(
+        "SELECT * FROM bot_sessions WHERE session_id = $1 ORDER BY last_active DESC LIMIT 1",
+        [username]
+      ).catch(() => ({ rows: [] }));
+      return res.status(200).json(sessionRes.rows[0] || null);
+    }
+
     if (req.method === "GET") {
       const result = await pool.query("SELECT * FROM bot_sessions ORDER BY last_active DESC");
       return res.status(200).json(result.rows);
@@ -49,7 +68,7 @@ export default async function handler(req, res) {
 
     return res.status(405).json({ error: "Method not allowed" });
   } catch (err) {
-    console.error("Sessions error:", err.message);
+    console.error("Session error:", err.message);
     return res.status(500).json({ error: err.message });
   } finally {
     await pool.end();
