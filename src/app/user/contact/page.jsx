@@ -2,7 +2,7 @@ import { useState } from "react";
 
 const socials = [
   { name: "TikTok", icon: "🎵", color: "#ff0050", handle: "@vk911_gaming", url: "https://tiktok.com/@vk911_gaming", desc: "Watch bot tutorials & gaming content" },
-  { name: "WhatsApp Channel", icon: "💬", color: "#25d366", handle: "VK911 XMD Official", url: "https://whatsapp.com/channel/0029VaYpQHFHXotnpcTf3C3T", desc: "Bot updates, tips & announcements" },
+  { name: "WhatsApp Channel", icon: "💬", color: "#25d366", handle: "VK911 MINI Official", url: "https://whatsapp.com/channel/0029VaYpQHFHXotnpcTf3C3T", desc: "Bot updates, tips & announcements" },
   { name: "Instagram", icon: "📸", color: "#e1306c", handle: "@vk911_gaming", url: "https://instagram.com/vk911_gaming", desc: "Behind the scenes & updates" },
   { name: "YouTube", icon: "▶", color: "#ff0000", handle: "VK911 Gaming", url: "https://youtube.com/@vk911_gaming", desc: "Bot setup guides & tutorials" },
 ];
@@ -35,7 +35,7 @@ export default function ContactPage() {
     <div>
       <div style={{ marginBottom: "32px" }}>
         <h1 style={{ fontSize: "22px", fontWeight: "800", color: "#f1f5f9", margin: "0 0 6px 0" }}>✉ Contact & Support</h1>
-        <p style={{ color: "#475569", fontSize: "13px", margin: 0 }}>Get help or follow VK911 XMD on social media</p>
+        <p style={{ color: "#475569", fontSize: "13px", margin: 0 }}>Get help or follow VK911 MINI on social media</p>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
@@ -88,7 +88,7 @@ export default function ContactPage() {
         {/* Socials */}
         <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
           <div style={{ background: "#0f0f1a", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "16px", padding: "24px" }}>
-            <h3 style={{ fontSize: "13px", fontWeight: "700", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.8px", margin: "0 0 18px 0" }}>⬦ Follow VK911 XMD</h3>
+            <h3 style={{ fontSize: "13px", fontWeight: "700", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.8px", margin: "0 0 18px 0" }}>⬦ Follow VK911 MINI</h3>
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
               {socials.map((s) => (
                 <a key={s.name} href={s.url} target="_blank" rel="noopener noreferrer"

@@ -18,20 +18,39 @@ export default function DashboardLayout() {
     else setActive("dashboard");
   }, []);
 
-  // Keepalive ping to bot every 4 min to prevent proxy timeout
+  // Load bot URL from DB then keepalive ping every 4 min
   useEffect(() => {
-    const ping = () => {
+    let botUrl = "";
+    const loadAndPing = async () => {
+      try {
+        const res = await fetch("/api/config?key=bot_url");
+        const data = await res.json();
+        if (data.value) {
+          botUrl = data.value;
+          localStorage.setItem("vk911_bot_url", data.value);
+        } else {
+          botUrl = localStorage.getItem("vk911_bot_url") || "";
+        }
+      } catch {
+        botUrl = localStorage.getItem("vk911_bot_url") || "";
+      }
+      if (!botUrl) return;
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 8000);
+      fetch(`${botUrl}/health`, { signal: ctrl.signal })
+        .then(() => clearTimeout(t))
+        .catch(() => clearTimeout(t));
+    };
+    loadAndPing();
+    const id = setInterval(() => {
       const url = localStorage.getItem("vk911_bot_url");
       if (!url) return;
       const ctrl = new AbortController();
       const t = setTimeout(() => ctrl.abort(), 8000);
-      // Bot exposes /health (not /ping)
       fetch(`${url}/health`, { signal: ctrl.signal })
         .then(() => clearTimeout(t))
         .catch(() => clearTimeout(t));
-    };
-    ping();
-    const id = setInterval(ping, 4 * 60 * 1000);
+    }, 4 * 60 * 1000);
     return () => clearInterval(id);
   }, []);
 

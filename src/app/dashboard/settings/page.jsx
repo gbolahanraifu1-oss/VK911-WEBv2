@@ -98,7 +98,7 @@ const Toggle = ({ value, onChange }) => (
 export default function SettingsPage() {
   const [settings, setSettings] = useState({
     prefix: ".",
-    botName: "VK911 XMD",
+    botName: "VK911 MINI",
     ownerNumber: "",
     timezone: "Africa/Lagos",
     antilink: false,
@@ -114,7 +114,7 @@ export default function SettingsPage() {
     selfBot: false,
     nsfwEnabled: false,
     channelLink: "https://whatsapp.com/channel/vk911xmd",
-    channelName: "VK911 XMD Official",
+    channelName: "VK911 MINI Official",
     botImage: "",
     footerText: "© powered by VK911 TECH",
     botApiPort: "3001",
@@ -174,7 +174,7 @@ export default function SettingsPage() {
             ⚙ Settings
           </h1>
           <p style={{ color: "#475569", fontSize: "13px", margin: 0 }}>
-            Configure VK911 XMD bot behavior and features
+            Configure VK911 MINI bot behavior and features
           </p>
         </div>
         <button
@@ -275,7 +275,7 @@ export default function SettingsPage() {
       <Section title="WhatsApp Channel">
         <Field
           label="Channel Name"
-          sub="Official VK911 XMD WhatsApp channel name"
+          sub="Official VK911 MINI WhatsApp channel name"
         >
           <input
             value={settings.channelName}

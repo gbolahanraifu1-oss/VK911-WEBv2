@@ -15,43 +15,64 @@ export default function DashSidebar({ active }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [botOnline, setBotOnline] = useState(null);
+  const [botUrl, setBotUrl] = useState("");
 
   useEffect(() => {
     const u = localStorage.getItem("vk911_user");
     if (u) setUser(JSON.parse(u));
   }, []);
 
+  // Load bot URL from DB, fall back to localStorage
   useEffect(() => {
+    const loadUrl = async () => {
+      try {
+        const res = await fetch("/api/config?key=bot_url");
+        const data = await res.json();
+        if (data.value) {
+          setBotUrl(data.value);
+          localStorage.setItem("vk911_bot_url", data.value);
+        } else {
+          setBotUrl(localStorage.getItem("vk911_bot_url") || "");
+        }
+      } catch {
+        setBotUrl(localStorage.getItem("vk911_bot_url") || "");
+      }
+    };
+    loadUrl();
+    // Reload bot URL every 5 min in case admin changes it
+    const id = setInterval(loadUrl, 5 * 60 * 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Ping /health whenever botUrl is set
+  useEffect(() => {
+    if (!botUrl) { setBotOnline(false); return; }
     const ping = () => {
-      const url = localStorage.getItem("vk911_bot_url");
-      if (!url) { setBotOnline(false); return; }
       const ctrl = new AbortController();
       const t = setTimeout(() => { ctrl.abort(); setBotOnline(false); }, 6000);
-      // Use /health endpoint (correct bot endpoint)
-      fetch(`${url}/health`, { signal: ctrl.signal })
+      fetch(`${botUrl}/health`, { signal: ctrl.signal })
         .then((r) => { clearTimeout(t); setBotOnline(r.ok); })
         .catch(() => { clearTimeout(t); setBotOnline(false); });
     };
     ping();
     const id = setInterval(ping, 4 * 60 * 1000);
     return () => clearInterval(id);
-  }, []);
+  }, [botUrl]);
 
-  // Keepalive ping every 4 min to prevent proxy timeout
+  // Keepalive every 4 min to prevent proxy timeout
   useEffect(() => {
+    if (!botUrl) return;
     const keepalive = () => {
-      const url = localStorage.getItem("vk911_bot_url");
-      if (!url) return;
       const ctrl = new AbortController();
       const t = setTimeout(() => ctrl.abort(), 8000);
-      fetch(`${url}/health`, { signal: ctrl.signal })
+      fetch(`${botUrl}/health`, { signal: ctrl.signal })
         .then(() => clearTimeout(t))
         .catch(() => clearTimeout(t));
     };
     keepalive();
     const id = setInterval(keepalive, 4 * 60 * 1000);
     return () => clearInterval(id);
-  }, []);
+  }, [botUrl]);
 
   const handleLogout = () => {
     localStorage.removeItem("vk911_token");
@@ -67,7 +88,7 @@ export default function DashSidebar({ active }) {
         </div>
         {!collapsed && (
           <div>
-            <div style={{ fontSize: "14px", fontWeight: "800", color: "#f1f5f9", lineHeight: 1.2 }}>VK911 XMD</div>
+            <div style={{ fontSize: "14px", fontWeight: "800", color: "#f1f5f9", lineHeight: 1.2 }}>VK911 MINI</div>
             <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
               <div style={{ fontSize: "10px", color: "#00ff88", fontFamily: "monospace", letterSpacing: "1px" }}>v2.0.3</div>
               <span style={{ display: "inline-flex", alignItems: "center", gap: "3px", fontSize: "9px", fontWeight: "600", color: botOnline === null ? "#64748b" : botOnline ? "#22c55e" : "#ef4444" }}>

@@ -98,7 +98,7 @@ export default function CommandsPage() {
             fontFamily: "monospace",
           }}
         >
-          VK911 XMD v2.0.3 — 200+ CMDS
+          VK911 MINI v2.0.3 — 200+ CMDS
         </div>
       </div>
 
@@ -1095,7 +1095,7 @@ const COMMANDS = [
     category: "Media",
     desc: "Create animated text sticker",
     usage: ".attp [text]",
-    example: ".attp VK911 XMD",
+    example: ".attp VK911 MINI",
     access: "All Users",
   },
   {
@@ -1183,7 +1183,7 @@ const COMMANDS = [
     category: "Media",
     desc: "Add a text caption overlay on an image",
     usage: ".caption [text] (reply to img)",
-    example: ".caption VK911 XMD",
+    example: ".caption VK911 MINI",
     access: "All Users",
   },
   {

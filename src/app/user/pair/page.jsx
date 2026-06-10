@@ -7,24 +7,43 @@ export default function UserPairPage() {
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
   const [logs, setLogs] = useState([]);
-  const [botUrl, setBotUrl] = useState(() => localStorage.getItem("vk911_bot_url") || "");
+  const [botUrl, setBotUrl] = useState("");
+  const [botUrlLoading, setBotUrlLoading] = useState(true);
   const pollRef = useRef(null);
 
   const addLog = (msg, type = "info") =>
     setLogs((l) => [{ msg, type, time: new Date().toLocaleTimeString() }, ...l.slice(0, 14)]);
 
+  // Load bot URL from DB (set by admin in dashboard)
   useEffect(() => {
-    if (botUrl) localStorage.setItem("vk911_bot_url", botUrl);
-  }, [botUrl]);
+    const load = async () => {
+      setBotUrlLoading(true);
+      try {
+        const res = await fetch("/api/config?key=bot_url");
+        const data = await res.json();
+        if (data.value) {
+          setBotUrl(data.value);
+          localStorage.setItem("vk911_bot_url", data.value);
+        } else {
+          // Fall back to localStorage cache
+          setBotUrl(localStorage.getItem("vk911_bot_url") || "");
+        }
+      } catch {
+        setBotUrl(localStorage.getItem("vk911_bot_url") || "");
+      } finally {
+        setBotUrlLoading(false);
+      }
+    };
+    load();
+  }, []);
 
   const requestPairingCode = async () => {
     if (!phone) return setError("Enter your WhatsApp number");
-    if (!botUrl) return setError("Enter your bot server URL first");
+    if (!botUrl) return setError("Bot server not configured. Contact admin.");
     setError(""); setStatus("loading"); setPairingCode("");
     const fullPhone = `${countryCode}${phone}`.replace(/\D/g, "");
     addLog(`Requesting pairing code for ${fullPhone}...`);
     try {
-      // Bot uses GET /pair?phone=...
       const res = await fetch(`${botUrl}/pair?phone=${encodeURIComponent(fullPhone)}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed");
@@ -64,13 +83,19 @@ export default function UserPairPage() {
     <div style={{ padding: "32px", maxWidth: "600px", margin: "0 auto" }}>
       <div style={{ marginBottom: "28px" }}>
         <h1 style={{ fontSize: "22px", fontWeight: "800", color: "#f1f5f9", margin: "0 0 6px 0" }}>⟳ Pair Your Device</h1>
-        <p style={{ color: "#475569", fontSize: "13px", margin: 0 }}>Connect your WhatsApp to VK911 XMD via pairing code</p>
+        <p style={{ color: "#475569", fontSize: "13px", margin: 0 }}>Connect your WhatsApp to VK911 MINI via pairing code</p>
       </div>
 
-      {/* Bot URL */}
-      <div style={{ background: "#0f0f1a", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "14px", padding: "20px", marginBottom: "20px" }}>
-        <label style={{ display: "block", fontSize: "11px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "8px" }}>Bot Server URL</label>
-        <input value={botUrl} onChange={(e) => setBotUrl(e.target.value.replace(/\/$/, ""))} placeholder="https://your-bot-server.com" style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "10px", padding: "11px 16px", fontSize: "13px", color: "#e2e8f0", outline: "none", boxSizing: "border-box", fontFamily: "monospace" }} onFocus={(e) => (e.target.style.borderColor = "rgba(0,255,136,0.4)")} onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.08)")} />
+      {/* Bot Server Status (read-only for users) */}
+      <div style={{ background: "#0f0f1a", border: `1px solid ${botUrl ? "rgba(0,255,136,0.15)" : "rgba(239,68,68,0.15)"}`, borderRadius: "14px", padding: "16px 20px", marginBottom: "20px", display: "flex", alignItems: "center", gap: "12px" }}>
+        <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: botUrlLoading ? "#475569" : botUrl ? "#22c55e" : "#ef4444", boxShadow: botUrl && !botUrlLoading ? "0 0 6px #22c55e" : "none", flexShrink: 0 }} />
+        <div>
+          <div style={{ fontSize: "12px", fontWeight: "600", color: botUrlLoading ? "#64748b" : botUrl ? "#22c55e" : "#ef4444" }}>
+            {botUrlLoading ? "Loading bot server..." : botUrl ? "Bot server configured" : "Bot server not configured"}
+          </div>
+          {botUrl && <div style={{ fontSize: "11px", color: "#475569", fontFamily: "monospace", marginTop: "2px" }}>{botUrl}</div>}
+          {!botUrl && !botUrlLoading && <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>Contact admin to configure the bot server URL</div>}
+        </div>
       </div>
 
       {/* Phone Input */}
@@ -87,12 +112,11 @@ export default function UserPairPage() {
 
         {error && <div style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: "8px", padding: "10px 14px", marginBottom: "14px", fontSize: "12px", color: "#f87171" }}>⚠ {error}</div>}
 
-        <button onClick={requestPairingCode} disabled={status === "loading" || !botUrl} style={{ width: "100%", padding: "13px", background: status === "loading" || !botUrl ? "rgba(0,255,136,0.25)" : "linear-gradient(135deg, #00ff88, #06b6d4)", border: "none", borderRadius: "10px", fontSize: "14px", fontWeight: "700", color: "#080810", cursor: status === "loading" || !botUrl ? "not-allowed" : "pointer" }}>
+        <button onClick={requestPairingCode} disabled={status === "loading" || !botUrl || botUrlLoading} style={{ width: "100%", padding: "13px", background: status === "loading" || !botUrl || botUrlLoading ? "rgba(0,255,136,0.25)" : "linear-gradient(135deg, #00ff88, #06b6d4)", border: "none", borderRadius: "10px", fontSize: "14px", fontWeight: "700", color: "#080810", cursor: status === "loading" || !botUrl || botUrlLoading ? "not-allowed" : "pointer" }}>
           {status === "loading" ? "Requesting..." : "Get Pairing Code"}
         </button>
       </div>
 
-      {/* Code Display */}
       {pairingCode && (
         <div style={{ background: "#0f0f1a", border: "1px solid rgba(0,255,136,0.3)", borderRadius: "14px", padding: "24px", marginBottom: "16px", textAlign: "center" }}>
           <p style={{ fontSize: "11px", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.8px", margin: "0 0 12px 0" }}>Your Pairing Code</p>
@@ -101,7 +125,6 @@ export default function UserPairPage() {
         </div>
       )}
 
-      {/* Status */}
       <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "12px 16px", background: "#0f0f1a", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "10px", marginBottom: "16px" }}>
         <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: statusColor, flexShrink: 0, boxShadow: status === "connected" ? `0 0 8px ${statusColor}` : "none" }} />
         <span style={{ fontSize: "12px", color: statusColor, fontWeight: "600", fontFamily: "monospace" }}>

@@ -179,7 +179,7 @@ export default function DownloadPage() {
           <div style={{ background: "rgba(0,255,136,0.04)", border: "1px solid rgba(0,255,136,0.1)", borderRadius: "12px", padding: "16px 20px", marginTop: "24px" }}>
             <p style={{ fontSize: "12px", color: "#475569", margin: 0 }}>
               Need help? Join the{" "}
-              <a href="https://whatsapp.com/channel/0029Vb88OB4545unOuID4H0Q" target="_blank" rel="noopener noreferrer" style={{ color: "#00ff88", fontWeight: "600" }}>VK911 XMD Channel →</a>
+              <a href="https://whatsapp.com/channel/0029Vb88OB4545unOuID4H0Q" target="_blank" rel="noopener noreferrer" style={{ color: "#00ff88", fontWeight: "600" }}>VK911 MINI Channel →</a>
             </p>
           </div>
         </div>

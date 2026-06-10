@@ -13,7 +13,10 @@ export default function PairingPage() {
   const [pairingCode, setPairingCode] = useState("");
   const [status, setStatus] = useState("idle");
   const [logs, setLogs] = useState([]);
-  const [botUrl, setBotUrl] = useState(() => localStorage.getItem("vk911_bot_url") || "");
+  const [botUrl, setBotUrl] = useState("");
+  const [botUrlInput, setBotUrlInput] = useState("");
+  const [urlSaving, setUrlSaving] = useState(false);
+  const [urlSaved, setUrlSaved] = useState(false);
   const [error, setError] = useState("");
   const [botOnline, setBotOnline] = useState(null);
   const pollRef = useRef(null);
@@ -21,12 +24,31 @@ export default function PairingPage() {
   const addLog = (msg, type = "info") =>
     setLogs((l) => [{ msg, type, time: new Date().toLocaleTimeString() }, ...l.slice(0, 19)]);
 
-  // Save bot URL whenever it changes
+  // Load bot URL from DB on mount (falls back to localStorage)
   useEffect(() => {
-    if (botUrl) localStorage.setItem("vk911_bot_url", botUrl);
-  }, [botUrl]);
+    const loadBotUrl = async () => {
+      try {
+        const res = await fetch("/api/config?key=bot_url");
+        const data = await res.json();
+        if (data.value) {
+          setBotUrl(data.value);
+          setBotUrlInput(data.value);
+          localStorage.setItem("vk911_bot_url", data.value);
+        } else {
+          const cached = localStorage.getItem("vk911_bot_url") || "";
+          setBotUrl(cached);
+          setBotUrlInput(cached);
+        }
+      } catch {
+        const cached = localStorage.getItem("vk911_bot_url") || "";
+        setBotUrl(cached);
+        setBotUrlInput(cached);
+      }
+    };
+    loadBotUrl();
+  }, []);
 
-  // Check bot health on mount and on botUrl change
+  // Check bot health whenever botUrl changes
   useEffect(() => {
     if (!botUrl) { setBotOnline(false); return; }
     const check = async () => {
@@ -46,14 +68,42 @@ export default function PairingPage() {
     check();
   }, [botUrl]);
 
+  // Save bot URL to DB + localStorage
+  const saveBotUrl = async () => {
+    const url = botUrlInput.replace(/\/$/, "");
+    setUrlSaving(true);
+    try {
+      const token = localStorage.getItem("vk911_token");
+      const res = await fetch("/api/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ key: "bot_url", value: url }),
+      });
+      if (!res.ok) throw new Error("Failed to save");
+      localStorage.setItem("vk911_bot_url", url);
+      setBotUrl(url);
+      setUrlSaved(true);
+      addLog("Bot URL saved to database", "success");
+      setTimeout(() => setUrlSaved(false), 3000);
+    } catch (err) {
+      // Fall back to localStorage only
+      localStorage.setItem("vk911_bot_url", url);
+      setBotUrl(url);
+      setUrlSaved(true);
+      addLog("Bot URL saved locally (DB unavailable)", "warn");
+      setTimeout(() => setUrlSaved(false), 3000);
+    } finally {
+      setUrlSaving(false);
+    }
+  };
+
   const requestPairingCode = async () => {
     if (!phone) { setError("Enter your WhatsApp number"); return; }
-    if (!botUrl) { setError("Enter your bot server URL first"); return; }
+    if (!botUrl) { setError("Save the bot server URL first"); return; }
     setError(""); setStatus("loading"); setPairingCode("");
     const fullPhone = `${countryCode}${phone}`.replace(/\D/g, "");
     addLog(`Requesting pairing code for ${fullPhone}...`, "info");
     try {
-      // Bot uses GET /pair?phone=...
       const res = await fetch(`${botUrl}/pair?phone=${encodeURIComponent(fullPhone)}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to get pairing code");
@@ -88,19 +138,37 @@ export default function PairingPage() {
   useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current); }, []);
 
   const statusColor = { idle: "#475569", loading: "#f59e0b", awaiting: "#f59e0b", connected: "#22c55e", error: "#ef4444" }[status];
+  const urlChanged = botUrlInput.replace(/\/$/, "") !== botUrl;
 
   return (
     <div style={{ padding: "32px", maxWidth: "900px" }}>
       <div style={{ marginBottom: "28px" }}>
         <h1 style={{ fontSize: "22px", fontWeight: "800", color: "#f1f5f9", margin: "0 0 6px 0" }}>⟳ Web Pairing</h1>
-        <p style={{ color: "#475569", fontSize: "13px", margin: 0 }}>Connect your WhatsApp account to VK911 XMD</p>
+        <p style={{ color: "#475569", fontSize: "13px", margin: 0 }}>Connect your WhatsApp account to VK911 MINI</p>
       </div>
 
       {/* Bot URL Config */}
       <div style={{ background: "#0f0f1a", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "14px", padding: "22px", marginBottom: "20px" }}>
-        <label style={{ display: "block", fontSize: "11px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "10px" }}>Bot Server URL</label>
+        <label style={{ display: "block", fontSize: "11px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "10px" }}>
+          Bot Server URL <span style={{ color: "#22c55e", fontSize: "10px", fontWeight: "600", letterSpacing: "0" }}>— saved across all users</span>
+        </label>
         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-          <input value={botUrl} onChange={(e) => setBotUrl(e.target.value.replace(/\/$/, ""))} placeholder="https://your-bot-server.com" style={{ flex: 1, minWidth: "260px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "10px", padding: "11px 16px", fontSize: "13px", color: "#e2e8f0", outline: "none", fontFamily: "monospace" }} onFocus={(e) => (e.target.style.borderColor = "rgba(0,255,136,0.4)")} onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.08)")} />
+          <input
+            value={botUrlInput}
+            onChange={(e) => setBotUrlInput(e.target.value)}
+            placeholder="https://your-bot-server.com"
+            style={{ flex: 1, minWidth: "260px", background: "rgba(255,255,255,0.04)", border: `1px solid ${urlChanged ? "rgba(245,158,11,0.4)" : "rgba(255,255,255,0.08)"}`, borderRadius: "10px", padding: "11px 16px", fontSize: "13px", color: "#e2e8f0", outline: "none", fontFamily: "monospace" }}
+            onFocus={(e) => (e.target.style.borderColor = "rgba(0,255,136,0.4)")}
+            onBlur={(e) => (e.target.style.borderColor = urlChanged ? "rgba(245,158,11,0.4)" : "rgba(255,255,255,0.08)")}
+            onKeyDown={(e) => { if (e.key === "Enter") saveBotUrl(); }}
+          />
+          <button
+            onClick={saveBotUrl}
+            disabled={urlSaving || !botUrlInput}
+            style={{ padding: "11px 20px", background: urlSaved ? "rgba(34,197,94,0.2)" : "rgba(0,255,136,0.1)", border: urlSaved ? "1px solid rgba(34,197,94,0.3)" : "1px solid rgba(0,255,136,0.25)", borderRadius: "10px", color: urlSaved ? "#22c55e" : "#00ff88", fontSize: "13px", fontWeight: "600", cursor: "pointer", whiteSpace: "nowrap" }}
+          >
+            {urlSaving ? "Saving..." : urlSaved ? "✓ Saved" : "→ Save URL"}
+          </button>
           <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "0 14px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "10px", fontSize: "12px", whiteSpace: "nowrap" }}>
             <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: botOnline === null ? "#475569" : botOnline ? "#22c55e" : "#ef4444", boxShadow: botOnline ? "0 0 6px #22c55e" : "none", display: "inline-block" }} />
             <span style={{ color: botOnline === null ? "#64748b" : botOnline ? "#22c55e" : "#ef4444" }}>
@@ -108,7 +176,7 @@ export default function PairingPage() {
             </span>
           </div>
         </div>
-        <p style={{ fontSize: "11px", color: "#475569", margin: "8px 0 0 0" }}>The public URL where your VK911 bot is running (e.g. Heroku, Railway, VPS)</p>
+        <p style={{ fontSize: "11px", color: "#475569", margin: "8px 0 0 0" }}>Enter your bot's public URL and click Save — it will be stored in the database and available to all users</p>
       </div>
 
       <div style={{ display: "flex", gap: "8px", marginBottom: "24px" }}>
@@ -119,7 +187,6 @@ export default function PairingPage() {
         {/* Input Panel */}
         <div style={{ background: "#0f0f1a", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "14px", padding: "24px" }}>
           <h3 style={{ fontSize: "13px", fontWeight: "700", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.8px", margin: "0 0 20px 0" }}>⬦ Enter Phone Number</h3>
-
           <label style={{ display: "block", fontSize: "11px", fontWeight: "600", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "8px" }}>WhatsApp Number</label>
           <div style={{ display: "flex", gap: "8px", marginBottom: "20px" }}>
             <select value={countryCode} onChange={(e) => setCountryCode(e.target.value)} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "10px", padding: "11px 12px", fontSize: "13px", color: "#e2e8f0", outline: "none", cursor: "pointer" }}>
@@ -129,13 +196,10 @@ export default function PairingPage() {
             </select>
             <input value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))} placeholder="8012345678" type="tel" style={{ flex: 1, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "10px", padding: "11px 16px", fontSize: "14px", color: "#e2e8f0", outline: "none", fontFamily: "monospace" }} onFocus={(e) => (e.target.style.borderColor = "rgba(0,255,136,0.4)")} onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.08)")} />
           </div>
-
           {error && <div style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: "10px", padding: "11px 14px", marginBottom: "16px", fontSize: "12px", color: "#f87171" }}>⚠ {error}</div>}
-
           <button onClick={requestPairingCode} disabled={status === "loading" || !botUrl} style={{ width: "100%", padding: "13px", background: status === "loading" || !botUrl ? "rgba(0,255,136,0.25)" : "linear-gradient(135deg, #00ff88, #06b6d4)", border: "none", borderRadius: "10px", fontSize: "14px", fontWeight: "700", color: "#080810", cursor: status === "loading" || !botUrl ? "not-allowed" : "pointer", boxShadow: status === "loading" || !botUrl ? "none" : "0 0 20px rgba(0,255,136,0.25)" }}>
             {status === "loading" ? "Requesting..." : "Get Pairing Code"}
           </button>
-
           <p style={{ fontSize: "11px", color: "#475569", margin: "12px 0 0 0", lineHeight: "1.7" }}>
             1. Enter your number above<br />
             2. Click "Get Pairing Code"<br />
@@ -146,14 +210,11 @@ export default function PairingPage() {
 
         {/* Output Panel */}
         <div>
-          {/* Pairing Code Display */}
           <div style={{ background: "#0f0f1a", border: `1px solid ${pairingCode ? "rgba(0,255,136,0.3)" : "rgba(255,255,255,0.06)"}`, borderRadius: "14px", padding: "24px", marginBottom: "16px" }}>
             <h3 style={{ fontSize: "13px", fontWeight: "700", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.8px", margin: "0 0 20px 0" }}>⬦ Pairing Code</h3>
             {pairingCode ? (
               <div>
-                <div style={{ fontSize: "36px", fontFamily: "'JetBrains Mono', monospace", fontWeight: "800", color: "#00ff88", letterSpacing: "8px", textAlign: "center", padding: "20px 0", textShadow: "0 0 30px rgba(0,255,136,0.4)" }}>
-                  {pairingCode}
-                </div>
+                <div style={{ fontSize: "36px", fontFamily: "'JetBrains Mono', monospace", fontWeight: "800", color: "#00ff88", letterSpacing: "8px", textAlign: "center", padding: "20px 0", textShadow: "0 0 30px rgba(0,255,136,0.4)" }}>{pairingCode}</div>
                 <p style={{ textAlign: "center", fontSize: "11px", color: "#475569", margin: "8px 0 0 0" }}>Enter this code in WhatsApp → Linked Devices → Link with phone number</p>
               </div>
             ) : (
@@ -163,8 +224,6 @@ export default function PairingPage() {
               </div>
             )}
           </div>
-
-          {/* Status */}
           <div style={{ background: "#0f0f1a", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "14px", padding: "16px 20px", display: "flex", alignItems: "center", gap: "10px" }}>
             <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: statusColor, boxShadow: status === "connected" ? `0 0 8px ${statusColor}` : "none", flexShrink: 0 }} />
             <span style={{ fontSize: "12px", color: statusColor, fontWeight: "600", fontFamily: "monospace" }}>
@@ -174,7 +233,6 @@ export default function PairingPage() {
         </div>
       </div>
 
-      {/* Logs */}
       {logs.length > 0 && (
         <div style={{ background: "#080810", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "14px", padding: "18px", marginTop: "20px", maxHeight: "200px", overflowY: "auto" }}>
           <div style={{ fontSize: "11px", color: "#334155", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "12px" }}>Activity Log</div>

@@ -48,8 +48,8 @@ export default function UserHomePage() {
 
   const actions = [
     { label: "Pair Your Device", desc: "Connect WhatsApp via pairing code", icon: "⟳", color: "#00ff88", href: "/user/pair" },
-    { label: "Contact Support", desc: "Reach the VK911 XMD team", icon: "✉", color: "#6366f1", href: "/user/contact" },
-    { label: "VK911 XMD Channel", desc: "Updates, tips & announcements", icon: "📢", color: "#22d3ee", href: "https://whatsapp.com/channel/0029Vb88OB4545unOuID4H0Q", external: true },
+    { label: "Contact Support", desc: "Reach the VK911 MINI team", icon: "✉", color: "#6366f1", href: "/user/contact" },
+    { label: "VK911 MINI Channel", desc: "Updates, tips & announcements", icon: "📢", color: "#22d3ee", href: "https://whatsapp.com/channel/0029Vb88OB4545unOuID4H0Q", external: true },
     { label: "GitHub Repository", desc: "Source code & documentation", icon: "⎇", color: "#f59e0b", href: "https://github.com/GBEXCHANGE/VK911-BOT", external: true },
   ];
 
@@ -61,7 +61,7 @@ export default function UserHomePage() {
         <h1 style={{ fontSize: "22px", fontWeight: "800", color: "#f1f5f9", margin: "0 0 6px 0" }}>
           Welcome back, <span style={{ background: "linear-gradient(135deg, #00ff88, #06b6d4)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>{user?.username}</span>
         </h1>
-        <p style={{ color: "#475569", fontSize: "13px", margin: 0 }}>Manage your VK911 XMD WhatsApp bot session</p>
+        <p style={{ color: "#475569", fontSize: "13px", margin: 0 }}>Manage your VK911 MINI WhatsApp bot session</p>
       </div>
 
       {/* Bot Server Status */}
