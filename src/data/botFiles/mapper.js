@@ -23,6 +23,9 @@ import {
   PLUGINS_MEDIA_JS,
   PLUGINS_UTILITY_JS,
 } from "./plugins3.js";
+// Fixed MINI bot files — served locally so users always get the patched version
+import { PAIR_API_JS } from "./pairApi.js";
+import { MINI_INDEX_JS } from "./miniIndex.js";
 
 export const BOT_FILES_MAP = {
   "index-js": INDEX_JS,
@@ -43,6 +46,9 @@ export const BOT_FILES_MAP = {
   "plugins_media-js": PLUGINS_MEDIA_JS,
   "plugins_utility-js": PLUGINS_UTILITY_JS,
   "README-md": README_MD,
+  // MINI bot fixed files — these override the GitHub raw versions
+  "pairapi-js": PAIR_API_JS,
+  "mini-index-js": MINI_INDEX_JS,
 };
 
 export function getBotFileContent(key) {

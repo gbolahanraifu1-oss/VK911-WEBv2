@@ -1,15 +1,15 @@
 import https from "https";
 
-const FILE_MAP = {
-  "index-js": "index.js",
-  "config-js": "config.js",
-  "env-example": ".env.example",
-  "handler-js": "handler.js",
-  "database-js": "database.js",
-  "pairapi-js": "pairApi.js",
-  "README-md": "Readme.md",
-};
+// FILE_MAP: GitHub raw fallback for keys NOT in the local mapper
 const GITHUB_RAW_BASE = "https://raw.githubusercontent.com/GBEXCHANGE/VK911-BOT/main";
+const GITHUB_FILE_MAP = {
+  "index-js":    "index.js",
+  "config-js":   "config.js",
+  "env-example": ".env.example",
+  "handler-js":  "handler.js",
+  "database-js": "database.js",
+  "README-md":   "Readme.md",
+};
 
 function fetchRaw(url) {
   return new Promise((resolve, reject) => {
@@ -30,18 +30,28 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   if (req.method === "OPTIONS") return res.status(200).end();
 
-  // Parse URL: supports /api/download?key=X, /api/download?file=X,
-  // and /api/download/filename (via Vercel rewrite)
-  const urlStr = req.url || "";
-  const [pathPart, queryStr] = urlStr.split("?");
-  const segments = pathPart.split("/").filter(Boolean);
-  const pathFile = segments.length > 2 ? segments[segments.length - 1] : null;
-  const params = new URLSearchParams(queryStr || "");
+  const [pathPart, queryStr] = (req.url || "").split("?");
+  const segments  = pathPart.split("/").filter(Boolean);
+  const pathFile  = segments.length > 2 ? segments[segments.length - 1] : null;
+  const params    = new URLSearchParams(queryStr || "");
   const keyParam  = params.get("key");
   const fileParam = params.get("file") || pathFile;
 
+  // ── Key-based lookup: check local mapper first, then GitHub raw ──
   if (keyParam) {
-    const filePath = FILE_MAP[keyParam];
+    // 1. Try local mapper (served from this repo — always the fixed version)
+    try {
+      const { getBotFileContent } = await import("../src/data/botFiles/mapper.js");
+      const local = getBotFileContent(keyParam);
+      if (local) {
+        res.setHeader("Content-Type", "text/plain; charset=utf-8");
+        res.setHeader("Cache-Control", "no-cache");
+        return res.status(200).send(local);
+      }
+    } catch {}
+
+    // 2. Fall back to GitHub raw for keys not in local mapper
+    const filePath = GITHUB_FILE_MAP[keyParam];
     if (!filePath) return res.status(404).json({ error: "Unknown file key: " + keyParam });
     try {
       const content = await fetchRaw(`${GITHUB_RAW_BASE}/${filePath}`);
@@ -52,6 +62,7 @@ export default async function handler(req, res) {
     }
   }
 
+  // ── File-based lookup (path segment or ?file=): always use mapper ──
   if (fileParam) {
     try {
       const { getBotFileContent } = await import("../src/data/botFiles/mapper.js");

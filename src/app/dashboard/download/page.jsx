@@ -8,7 +8,11 @@ const BOT_FILE_STRUCTURE = {
     { name: "database.js", key: "database-js", desc: "Database helper utilities" },
   ],
   "API & Pairing": [
-    { name: "pairApi.js", key: "pairapi-js", desc: "Web pairing API server — GET /pair?phone=..." },
+    { name: "pairApi.js", key: "pairapi-js", desc: "Fixed Web Pairing API — resolves WhatsApp 'Invalid code' error ✅" },
+  ],
+  "MINI Bot (Pairing Fix)": [
+    { name: "pairApi.js ✅ FIXED", key: "pairapi-js", desc: "Replace your existing pairApi.js with this — fixes 'Invalid code'" },
+    { name: "index.js ✅ FIXED", key: "mini-index-js", desc: "Replace your existing index.js — adds closeSession() for clean pairing" },
   ],
   Documentation: [
     { name: "Readme.md", key: "README-md", desc: "Setup guide & deployment instructions" },
