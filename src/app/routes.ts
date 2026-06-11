@@ -8,6 +8,7 @@ export default [
   route("user", "./user/layout.jsx", [
     index("./user/page.jsx"),
     route("pair", "./user/pair/page.jsx"),
+    route("settings", "./user/settings/page.jsx"),
     route("contact", "./user/contact/page.jsx"),
   ]),
 
