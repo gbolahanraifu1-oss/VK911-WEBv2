@@ -6,6 +6,12 @@ function getPool() {
   return new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
 }
 
+function decodeUserId(auth) {
+  if (!auth?.startsWith("Bearer ")) return null;
+  try { return Buffer.from(auth.slice(7), "base64").toString("utf-8").split(":")[0] || null; }
+  catch { return null; }
+}
+
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
@@ -21,54 +27,73 @@ export default async function handler(req, res) {
         id SERIAL PRIMARY KEY,
         session_id TEXT UNIQUE NOT NULL,
         phone_number TEXT,
+        username TEXT,
+        bot_url TEXT,
         status TEXT DEFAULT 'disconnected',
         last_active TIMESTAMP DEFAULT NOW(),
         created_at TIMESTAMP DEFAULT NOW()
       )
     `);
+    await pool.query(`ALTER TABLE bot_sessions ADD COLUMN IF NOT EXISTS username TEXT`).catch(() => {});
+    await pool.query(`ALTER TABLE bot_sessions ADD COLUMN IF NOT EXISTS bot_url TEXT`).catch(() => {});
 
-    const auth = req.headers.authorization;
-    // /api/user/session is rewritten here — detect by URL or auth presence for user-specific lookup
-    const isUserRoute = (req.url || "").includes("user");
+    const url    = req.url || "";
+    const params = new URLSearchParams(url.split("?")[1] || "");
+    const isUserRoute = url.includes("/user/session") || params.get("user") === "1";
+    const userId = decodeUserId(req.headers.authorization);
 
-    if (isUserRoute && req.method === "GET" && auth?.startsWith("Bearer ")) {
-      const token = auth.slice(7);
-      const decoded = Buffer.from(token, "base64").toString("utf-8");
-      const userId = decoded.split(":")[0];
-      const userRes = await pool.query("SELECT username FROM users WHERE id = $1", [userId])
-        .catch(() => ({ rows: [] }));
-      if (!userRes.rows.length) return res.status(200).json(null);
-      const username = userRes.rows[0].username;
-      const sessionRes = await pool.query(
-        "SELECT * FROM bot_sessions WHERE session_id = $1 ORDER BY last_active DESC LIMIT 1",
-        [username]
-      ).catch(() => ({ rows: [] }));
-      return res.status(200).json(sessionRes.rows[0] || null);
+    // ── User-scoped GET ──────────────────────────────────────────────
+    if (isUserRoute && req.method === "GET") {
+      if (!userId) return res.status(200).json(url.includes("/user/session") ? null : []);
+      const ur = await pool.query("SELECT username FROM users WHERE id = $1", [userId]).catch(() => ({ rows: [] }));
+      if (!ur.rows.length) return res.status(200).json(url.includes("/user/session") ? null : []);
+      const username = ur.rows[0].username;
+      const sr = await pool.query(
+        "SELECT * FROM bot_sessions WHERE username = $1 ORDER BY last_active DESC", [username]
+      );
+      if (url.includes("/user/session")) return res.status(200).json(sr.rows[0] || null);
+      return res.status(200).json(sr.rows);
     }
 
+    // ── Admin GET: all sessions ──────────────────────────────────────
     if (req.method === "GET") {
       const result = await pool.query("SELECT * FROM bot_sessions ORDER BY last_active DESC");
       return res.status(200).json(result.rows);
     }
 
+    // ── POST: upsert a session ───────────────────────────────────────
     if (req.method === "POST") {
-      const { session_id, phone_number, status } = req.body || {};
+      const { session_id, phone_number, username, bot_url, status } = req.body || {};
       if (!session_id) return res.status(400).json({ error: "session_id required" });
+      let resolvedUsername = username || null;
+      if (!resolvedUsername && userId) {
+        const ur = await pool.query("SELECT username FROM users WHERE id = $1", [userId]).catch(() => ({ rows: [] }));
+        if (ur.rows.length) resolvedUsername = ur.rows[0].username;
+      }
       const result = await pool.query(`
-        INSERT INTO bot_sessions (session_id, phone_number, status)
-        VALUES ($1, $2, $3)
+        INSERT INTO bot_sessions (session_id, phone_number, username, bot_url, status)
+        VALUES ($1, $2, $3, $4, $5)
         ON CONFLICT (session_id) DO UPDATE
           SET phone_number = EXCLUDED.phone_number,
-              status = EXCLUDED.status,
-              last_active = NOW()
+              username     = COALESCE(EXCLUDED.username, bot_sessions.username),
+              bot_url      = COALESCE(EXCLUDED.bot_url, bot_sessions.bot_url),
+              status       = EXCLUDED.status,
+              last_active  = NOW()
         RETURNING *
-      `, [session_id, phone_number || null, status || "disconnected"]);
+      `, [session_id, phone_number || session_id, resolvedUsername, bot_url || null, status || "disconnected"]);
       return res.status(200).json(result.rows[0]);
+    }
+
+    // ── DELETE ───────────────────────────────────────────────────────
+    if (req.method === "DELETE") {
+      const id = params.get("id") || url.split("/").filter(Boolean).pop();
+      if (!id || isNaN(id)) return res.status(400).json({ error: "numeric id required" });
+      await pool.query("DELETE FROM bot_sessions WHERE id = $1", [parseInt(id)]);
+      return res.status(200).json({ ok: true });
     }
 
     return res.status(405).json({ error: "Method not allowed" });
   } catch (err) {
-    console.error("Session error:", err.message);
     return res.status(500).json({ error: err.message });
   } finally {
     await pool.end();
