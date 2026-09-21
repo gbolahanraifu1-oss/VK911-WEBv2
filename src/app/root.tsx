@@ -26,7 +26,23 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <title>ᴍᴀᴅᴀʀᴀ x-ᴍᴅ</title>
        <meta name="monetag" content="a8c554baae03d4261726e149d47ff2dc" />
 
-<script>(function(s){s.dataset.zone='11849999',s.src='https://al5sm.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
+
+
+<script
+  dangerouslySetInnerHTML={{
+    __html: `
+      (function(s) {
+        s.dataset.zone = '11849999';
+        s.src = 'https://al5sm.com/tag.min.js';
+      })(
+        [document.documentElement, document.body]
+          .filter(Boolean)
+          .pop()
+          .appendChild(document.createElement('script'))
+      );
+    `,
+  }}
+/>
 
 <script
   src="https://quge5.com/88/tag.min.js"
