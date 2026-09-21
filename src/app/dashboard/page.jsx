@@ -106,7 +106,7 @@ export default function DashboardPage() {
           }}>LIVE</span>
         </div>
         <p style={{ color: "#475569", fontSize: "13px", margin: 0 }}>
-          VK911 MINI v2.0.3 — Real-time bot performance & stats
+          ᴍᴀᴅᴀʀᴀ x-ᴍᴅ v1.2.0 BETA — Real-time bot performance & stats
         </p>
       </div>
 
@@ -198,14 +198,14 @@ export default function DashboardPage() {
       {/* Bot Info Footer */}
       <div style={{ background: "#0f0f1a", border: "1px solid rgba(0,255,136,0.1)", borderRadius: "14px", padding: "18px 22px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
         <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
-          {[["Bot Name","VK911 MINI"],["Version","v2.0.3"],["Engine","Baileys"],["Runtime","Node.js"],["Plugins","8 active"]].map(([k, v]) => (
+          {[["Bot Name","ᴍᴀᴅᴀʀᴀ x-ᴍᴅ"],["Version","v1.2.0 BETA"],["Engine","Baileys"],["Runtime","Node.js"],["Plugins","8 active"]].map(([k, v]) => (
             <div key={k}>
               <div style={{ fontSize: "10px", color: "#334155", textTransform: "uppercase", letterSpacing: "0.8px" }}>{k}</div>
               <div style={{ fontSize: "12px", fontWeight: "600", color: "#e2e8f0", fontFamily: "monospace" }}>{v}</div>
             </div>
           ))}
         </div>
-        <div style={{ fontSize: "11px", color: "#334155" }}>© powered by VK911 TECH</div>
+        <div style={{ fontSize: "11px", color: "#334155" }}>© powered by ᴍᴀᴅᴀʀᴀ x-ᴍᴅ | ɪɴᴄ.</div>
       </div>
     </div>
   );

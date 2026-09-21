@@ -40,62 +40,32 @@ export default function UserPairPage() {
     } catch {}
   };
 
-  // Try V2 (POST /api/pair/code) then MINI (GET /pair?phone=...)
+  // Madara X-MD pairing API: GET /pair?phone=...&mode=normal.
   const fetchCode = async (bUrl, ph) => {
-    const ac  = new AbortController();
-    const t1  = setTimeout(() => ac.abort(), 75000);
-    try {
-      const r = await fetch(`${bUrl}/api/pair/code`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: ph }), signal: ac.signal,
-      });
-      clearTimeout(t1);
-      const d = await r.json();
-      if (r.status === 409) throw new Error(d.error || "Session already connected — clear it first");
-      if (r.ok) return { code: d.code, format: "v2" };
-      if (r.status !== 404) throw new Error(d.error || `Bot returned HTTP ${r.status}`);
-    } catch (e) {
-      clearTimeout(t1);
-      if (e.name !== "AbortError" && !e.message.includes("404") && !e.message.includes("Failed to fetch")) throw e;
+    const response = await fetch(`${bUrl}/pair?phone=${encodeURIComponent(ph)}&mode=normal`, {
+      signal: AbortSignal.timeout(75000),
+    });
+    const raw = await response.text();
+    let data = {};
+    try { data = raw ? JSON.parse(raw) : {}; } catch {
+      throw new Error(`Bot returned an invalid response (HTTP ${response.status})`);
     }
-    // MINI fallback
-    const ac2 = new AbortController();
-    const t2  = setTimeout(() => ac2.abort(), 75000);
-    try {
-      const r2 = await fetch(`${bUrl}/pair?phone=${encodeURIComponent(ph)}`, { signal: ac2.signal });
-      clearTimeout(t2);
-      const d2 = await r2.json();
-      if (!r2.ok) throw new Error(d2.error || `Bot returned HTTP ${r2.status}`);
-      return { code: d2.code || d2.pairingCode, format: "mini" };
-    } catch (e) {
-      clearTimeout(t2);
-      if (e.name === "AbortError") throw new Error("Request timed out (75s) — bot is not responding");
-      throw e;
-    }
+    if (!response.ok) throw new Error(data.error || `Bot returned HTTP ${response.status}`);
+    const code = data.code || data.pairingCode || data.pair_code;
+    if (!code) throw new Error("The bot returned no pairing code");
+    return { code, format: "Madara /pair" };
   };
 
   const startPoll = (bUrl, ph) => {
     if (pollRef.current) clearInterval(pollRef.current);
     let attempts = 0;
     pollRef.current = setInterval(async () => {
-      if (++attempts > 72) { clearInterval(pollRef.current); return; } // 6 min max
+      if (++attempts > 72) { clearInterval(pollRef.current); return; }
       try {
-        // V2: GET /api/status
-        const r = await fetch(`${bUrl}/api/status`, { signal: AbortSignal.timeout(5000) });
-        if (r.ok) {
-          const d = await r.json();
-          if (d.connected && (d.user?.id || "").includes(ph.slice(-10))) {
-            return finish(bUrl, ph);
-          }
-        }
-      } catch {}
-      try {
-        // MINI: GET /sessions
-        const r2 = await fetch(`${bUrl}/sessions`, { signal: AbortSignal.timeout(5000) });
-        if (r2.ok) {
-          const d2 = await r2.json();
-          if (d2[ph] === "connected") return finish(bUrl, ph);
-        }
+        const response = await fetch(`${bUrl}/status?phone=${encodeURIComponent(ph)}`, { signal: AbortSignal.timeout(6000) });
+        const raw = await response.text();
+        const data = raw ? JSON.parse(raw) : {};
+        if (response.ok && data.connected) return finish(bUrl, ph);
       } catch {}
     }, 5000);
   };
@@ -137,7 +107,7 @@ export default function UserPairPage() {
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
       <div style={{ marginBottom: "28px" }}>
         <h1 style={{ fontSize: "22px", fontWeight: "800", color: "#f1f5f9", margin: "0 0 6px 0" }}>⟳ Pair Your Device</h1>
-        <p style={{ color: "#475569", fontSize: "13px", margin: 0 }}>Connect your WhatsApp to VK911 MINI via pairing code</p>
+        <p style={{ color: "#475569", fontSize: "13px", margin: 0 }}>Connect your WhatsApp to ᴍᴀᴅᴀʀᴀ x-ᴍᴅ via pairing code</p>
       </div>
 
       {/* Bot status */}

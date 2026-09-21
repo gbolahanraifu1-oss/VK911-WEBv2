@@ -88,9 +88,9 @@ export default function DashSidebar({ active }) {
         </div>
         {!collapsed && (
           <div>
-            <div style={{ fontSize: "14px", fontWeight: "800", color: "#f1f5f9", lineHeight: 1.2 }}>VK911 MINI</div>
+            <div style={{ fontSize: "14px", fontWeight: "800", color: "#f1f5f9", lineHeight: 1.2 }}>ᴍᴀᴅᴀʀᴀ x-ᴍᴅ</div>
             <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-              <div style={{ fontSize: "10px", color: "#00ff88", fontFamily: "monospace", letterSpacing: "1px" }}>v2.0.3</div>
+              <div style={{ fontSize: "10px", color: "#00ff88", fontFamily: "monospace", letterSpacing: "1px" }}>v1.2.0 BETA</div>
               <span style={{ display: "inline-flex", alignItems: "center", gap: "3px", fontSize: "9px", fontWeight: "600", color: botOnline === null ? "#64748b" : botOnline ? "#22c55e" : "#ef4444" }}>
                 <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: botOnline === null ? "#475569" : botOnline ? "#22c55e" : "#ef4444", boxShadow: botOnline ? "0 0 6px #22c55e" : "none", display: "inline-block" }} />
                 {botOnline === null ? "..." : botOnline ? "BOT ON" : "BOT OFF"}

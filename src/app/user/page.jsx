@@ -53,7 +53,7 @@ export default function UserHomePage() {
         <h1 style={{ fontSize:"22px", fontWeight:"800", color:"#f1f5f9", margin:"0 0 6px 0" }}>
           Welcome, <span style={{ background:"linear-gradient(135deg,#00ff88,#06b6d4)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>{user?.username}</span>
         </h1>
-        <p style={{ color:"#475569", fontSize:"13px", margin:0 }}>Manage your VK911 MINI WhatsApp bot session</p>
+        <p style={{ color:"#475569", fontSize:"13px", margin:0 }}>Manage your ᴍᴀᴅᴀʀᴀ x-ᴍᴅ WhatsApp bot session</p>
       </div>
 
       {/* Bot server pill */}
@@ -127,7 +127,7 @@ export default function UserHomePage() {
         {[
           { label:"Pair Device", desc:"Connect WhatsApp via pairing code", icon:"⟳", color:"#00ff88", href:"/user/pair" },
           { label:"My Settings", desc:"Configure per-session bot preferences", icon:"⚙", color:"#6366f1", href:"/user/settings" },
-          { label:"VK911 MINI Channel", desc:"Updates & announcements", icon:"📢", color:"#22d3ee", href:"https://whatsapp.com/channel/0029Vb88OB4545unOuID4H0Q", ext:true },
+          { label:"ᴍᴀᴅᴀʀᴀ x-ᴍᴅ Channel", desc:"Updates & announcements", icon:"📢", color:"#22d3ee", href:"https://whatsapp.com/channel/0029Vb88OB4545unOuID4H0Q", ext:true },
           { label:"GitHub", desc:"Source code & docs", icon:"⎇", color:"#f59e0b", href:"https://github.com/GBEXCHANGE/VK911-BOT", ext:true },
         ].map(a => (
           <a key={a.label} href={a.href} target={a.ext?"_blank":undefined} rel={a.ext?"noopener noreferrer":undefined}

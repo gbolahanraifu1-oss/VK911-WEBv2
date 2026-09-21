@@ -104,7 +104,7 @@ export default function PairingPage() {
     const fullPhone = `${countryCode}${phone}`.replace(/\D/g, "");
     addLog(`Requesting pairing code for ${fullPhone}...`, "info");
     try {
-      const res = await fetch(`${botUrl}/pair?phone=${encodeURIComponent(fullPhone)}`);
+      const res = await fetch(`${botUrl}/pair?phone=${encodeURIComponent(fullPhone)}&mode=normal`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to get pairing code");
       const code = data.code || data.pairingCode || data.pair_code;
@@ -124,9 +124,10 @@ export default function PairingPage() {
     if (pollRef.current) clearInterval(pollRef.current);
     pollRef.current = setInterval(async () => {
       try {
-        const res = await fetch(`${botUrl}/health`);
+        const phoneForStatus = `${countryCode}${phone}`.replace(/\D/g, "");
+        const res = await fetch(`${botUrl}/status?phone=${encodeURIComponent(phoneForStatus)}`, { signal: AbortSignal.timeout(6000) });
         const data = await res.json();
-        if (data.status === "ok" && data.connected) {
+        if (res.ok && data.connected) {
           setStatus("connected");
           addLog("Bot connected to WhatsApp!", "success");
           clearInterval(pollRef.current);
@@ -144,7 +145,7 @@ export default function PairingPage() {
     <div style={{ padding: "32px", maxWidth: "900px" }}>
       <div style={{ marginBottom: "28px" }}>
         <h1 style={{ fontSize: "22px", fontWeight: "800", color: "#f1f5f9", margin: "0 0 6px 0" }}>⟳ Web Pairing</h1>
-        <p style={{ color: "#475569", fontSize: "13px", margin: 0 }}>Connect your WhatsApp account to VK911 MINI</p>
+        <p style={{ color: "#475569", fontSize: "13px", margin: 0 }}>Connect your WhatsApp account to ᴍᴀᴅᴀʀᴀ x-ᴍᴅ</p>
       </div>
 
       {/* Bot URL Config */}

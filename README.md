@@ -1,6 +1,6 @@
-# VK911 XMD — Web Dashboard
+# ᴍᴀᴅᴀʀᴀ x-ᴍᴅ — Web Dashboard
 
-React Router v7 admin dashboard for managing the VK911 XMD WhatsApp Bot.
+React Router v7 admin dashboard for managing the ᴍᴀᴅᴀʀᴀ x-ᴍᴅ WhatsApp Bot.
 
 ---
 

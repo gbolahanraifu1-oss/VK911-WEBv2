@@ -29,12 +29,12 @@ const InputStyle = { background: "rgba(255,255,255,0.04)", border: "1px solid rg
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState({
-    prefix: ".", botName: "VK911 MINI", ownerNumber: "", timezone: "Africa/Lagos",
+    prefix: ".", botName: "ᴍᴀᴅᴀʀᴀ x-ᴍᴅ", ownerNumber: "", timezone: "Africa/Lagos",
     antilink: false, antispam: true, antibot: false, antitoxic: false,
     welcomeMsg: true, goodbyeMsg: true, readMessages: true, readStatus: false,
     autoReact: true, publicMode: true, selfBot: false, nsfwEnabled: false,
     channelLink: "https://whatsapp.com/channel/0029VaYpQHFHXotnpcTf3C3T",
-    channelName: "VK911 MINI Official", footerText: "© powered by VK911 TECH",
+    channelName: "ᴍᴀᴅᴀʀᴀ x-ᴍᴅ Official", footerText: "© powered by ᴍᴀᴅᴀʀᴀ x-ᴍᴅ | ɪɴᴄ.",
     maxFileSize: "100", botApiPort: "3001",
   });
   const [loaded, setLoaded] = useState(false);
@@ -111,7 +111,7 @@ export default function SettingsPage() {
       <div style={{ marginBottom: "28px", display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px" }}>
         <div>
           <h1 style={{ fontSize: "22px", fontWeight: "800", color: "#f1f5f9", margin: "0 0 6px 0" }}>⚙ Settings</h1>
-          <p style={{ color: "#475569", fontSize: "13px", margin: 0 }}>Configure VK911 MINI bot behavior — changes auto-save to database</p>
+          <p style={{ color: "#475569", fontSize: "13px", margin: 0 }}>Configure ᴍᴀᴅᴀʀᴀ x-ᴍᴅ bot behavior — changes auto-save to database</p>
         </div>
         <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
           {saving && <span style={{ fontSize: "11px", color: "#f59e0b", fontFamily: "monospace" }}>Saving...</span>}
@@ -198,7 +198,7 @@ export default function SettingsPage() {
       </Section>
 
       <Section title="WhatsApp Channel">
-        <Field label="Channel Name" sub="Official VK911 MINI WhatsApp channel name">
+        <Field label="Channel Name" sub="Official ᴍᴀᴅᴀʀᴀ x-ᴍᴅ WhatsApp channel name">
           <input value={settings.channelName} onChange={(e) => set("channelName", e.target.value)} style={InputStyle} />
         </Field>
         <Field label="Channel Link" sub="WhatsApp channel link shown in .menu and .channel">

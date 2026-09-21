@@ -23,6 +23,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
+        <title>ᴍᴀᴅᴀʀᴀ x-ᴍᴅ</title>
+        <meta name="google-adsense-account" content="ca-pub-5934268333067094" />
+        <meta name="monetag" content="48ec74128d80b5da8b5a4e495c060660" />
+        <script src="https://quge5.com/88/tag.min.js" data-zone="278684" async data-cfasync="false"></script>
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5934268333067094" crossOrigin="anonymous"></script>
         <Links />
         <link
           href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"

@@ -79,7 +79,7 @@ export default function DownloadPage() {
     <div style={{ padding: "32px", maxWidth: "1400px" }}>
       <div style={{ marginBottom: "28px" }}>
         <h1 style={{ fontSize: "22px", fontWeight: "800", color: "#f1f5f9", margin: "0 0 6px 0" }}>↓ Download Bot Project</h1>
-        <p style={{ color: "#475569", fontSize: "13px", margin: 0 }}>VK911 MINI XMD — {totalFiles} files — Click a file to preview and download</p>
+        <p style={{ color: "#475569", fontSize: "13px", margin: 0 }}>ᴍᴀᴅᴀʀᴀ x-ᴍᴅ — {totalFiles} files — Click a file to preview and download</p>
       </div>
 
       {/* Info Banner */}
@@ -128,7 +128,7 @@ export default function DownloadPage() {
             {/* Stats */}
             <div style={{ background: "#0f0f1a", border: "1px solid rgba(0,255,136,0.1)", borderRadius: "12px", padding: "16px" }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                {[["Total Files", totalFiles], ["Commands", "200+"], ["Plugins", "9"], ["Version", "v2.0.3"]].map(([k, v]) => (
+                {[["Total Files", totalFiles], ["Commands", "200+"], ["Plugins", "9"], ["Version", "v1.2.0 BETA"]].map(([k, v]) => (
                   <div key={k}>
                     <div style={{ fontSize: "10px", color: "#334155", textTransform: "uppercase", letterSpacing: "0.8px" }}>{k}</div>
                     <div style={{ fontSize: "16px", fontWeight: "800", color: "#00ff88", fontFamily: "monospace" }}>{v}</div>
@@ -183,7 +183,7 @@ export default function DownloadPage() {
           <div style={{ background: "rgba(0,255,136,0.04)", border: "1px solid rgba(0,255,136,0.1)", borderRadius: "12px", padding: "16px 20px", marginTop: "24px" }}>
             <p style={{ fontSize: "12px", color: "#475569", margin: 0 }}>
               Need help? Join the{" "}
-              <a href="https://whatsapp.com/channel/0029Vb88OB4545unOuID4H0Q" target="_blank" rel="noopener noreferrer" style={{ color: "#00ff88", fontWeight: "600" }}>VK911 MINI Channel →</a>
+              <a href="https://whatsapp.com/channel/0029Vb88OB4545unOuID4H0Q" target="_blank" rel="noopener noreferrer" style={{ color: "#00ff88", fontWeight: "600" }}>ᴍᴀᴅᴀʀᴀ x-ᴍᴅ Channel →</a>
             </p>
           </div>
         </div>

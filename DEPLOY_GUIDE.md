@@ -36,4 +36,4 @@ Example: fetch('/api/stats') → hits Vercel function api/stats.js
 In local dev (npm run dev), Vercel functions won't run.
 Use a local Express server or Vercel CLI: npx vercel dev
 
-© powered by VK911 TECH
+© powered by ᴍᴀᴅᴀʀᴀ x-ᴍᴅ | ɪɴᴄ.

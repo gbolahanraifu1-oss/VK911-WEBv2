@@ -2,12 +2,12 @@ import pkg from "pg";
 const { Pool } = pkg;
 
 const DEFAULTS = {
-  prefix: ".", botName: "VK911 MINI", ownerNumber: "", timezone: "Africa/Lagos",
+  prefix: ".", botName: "ᴍᴀᴅᴀʀᴀ x-ᴍᴅ", ownerNumber: "", timezone: "Africa/Lagos",
   antilink: "false", antispam: "true", antibot: "false", antitoxic: "false",
   welcomeMsg: "true", goodbyeMsg: "true", readMessages: "true", readStatus: "false",
   autoReact: "true", publicMode: "true", selfBot: "false", nsfwEnabled: "false",
   channelLink: "https://whatsapp.com/channel/0029VaYpQHFHXotnpcTf3C3T",
-  channelName: "VK911 MINI Official", footerText: "© powered by VK911 TECH",
+  channelName: "ᴍᴀᴅᴀʀᴀ x-ᴍᴅ Official", footerText: "© powered by ᴍᴀᴅᴀʀᴀ x-ᴍᴅ | ɪɴᴄ.",
   maxFileSize: "100", botApiPort: "3001",
 };
 const USER_KEYS = ["readMessages","readStatus","autoReact","welcomeMsg"];
